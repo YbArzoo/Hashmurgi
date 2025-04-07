@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel - HashMurgi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="flex h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white shadow-md px-4 py-6">
+      <h1 class="text-2xl font-bold text-blue-600 mb-6">Admin Panel</h1>
+      <nav class="space-y-4">
+        <a href="#" class="block text-gray-700 hover:text-blue-500">Dashboard</a>
+        <a href="{{ url_for('edit_user_role') }}" class="block text-gray-700 hover:text-blue-500">Edit User Roles</a>
+        <a href="{{ url_for('add_admin') }}" class="block text-gray-700 hover:text-blue-500">Add New Admin</a>
+        <a href="{{ url_for('delete_users') }}" class="block text-gray-700 hover:text-blue-500">Delete Users</a>
+        <a href="#" class="block text-gray-700 hover:text-blue-500">Poultry Stock</a>
+        <a href="#" class="block text-gray-700 hover:text-blue-500">Vaccination Schedule</a>
+        <a href="#" class="block text-gray-700 hover:text-blue-500">Production Records</a>
+        <a href="#" class="block text-gray-700 hover:text-blue-500">Feed & Resources</a>
+        <a href="#" class="block text-gray-700 hover:text-blue-500">Financials</a>
+        <a href="#" class="block text-gray-700 hover:text-blue-500">Notifications</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6 overflow-y-auto">
+      <header class="mb-6">
+        <h2 class="text-3xl font-semibold text-gray-800">Dashboard</h2>
+        <p class="text-gray-500">Manage everything from one place</p>
+      </header>
+
+      <!-- User Management Card -->
+      <section class="bg-white p-6 rounded-lg shadow mb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">User Role & Permission Management</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <a href="{{ url_for('edit_user_role') }}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-center">Edit User Roles</a>
+          <a href="{{ url_for('add_admin') }}" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 text-center">Add New Admin</a>
+          <a href="{{ url_for('delete_users') }}" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 text-center">Delete Users</a>
+        </div>
+      </section>
+
+      <!-- Project Tasks Section -->
+      <section class="bg-white p-6 rounded-lg shadow mb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Project & Task Management</h3>
+        <ul class="list-disc pl-6 space-y-2 text-gray-700">
+          <li>Manage Poultry Batches</li>
+          <li>Vaccination Schedules</li>
+          <li>Track Egg & Meat Production</li>
+          <li>Log Feed Consumption and Costs</li>
+        </ul>
+      </section>
+
+      <!-- Financial Management Section -->
+      <section class="bg-white p-6 rounded-lg shadow mb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Financial Sales Management</h3>
+        <ul class="list-disc pl-6 space-y-2 text-gray-700">
+          <li>Record Sales and Payments</li>
+          <li>Manage Invoices</li>
+          <li>Generate & Send PDF Receipts</li>
+          <li>Customer Purchase History</li>
+        </ul>
+      </section>
+
+      <!-- Alerts Section -->
+      <section class="bg-white p-6 rounded-lg shadow">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">System Alerts</h3>
+        <p class="text-red-500">⚠️ Low Feed Cost Alert Enabled</p>
+        <p class="text-gray-600 mt-2">Admins will receive notifications for low feed cost thresholds.</p>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
