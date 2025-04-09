@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profile Management Panel - HashMurgi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="flex h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white shadow-md px-4 py-6">
+      <h1 class="text-2xl font-bold text-blue-600 mb-6">HashMurgi</h1>
+      <div class="mb-6">
+        <p class="text-sm text-gray-600">Welcome,</p>
+        <p class="font-semibold">{{ user.name }}</p>
+        <p class="text-xs text-gray-500 mt-1">
+          Role: {{ user.role|capitalize }}
+          {% if user.role == 'employee' %}
+            ({{ user.employee_type|capitalize }})
+          {% endif %}
+        </p>
+      </div>
+      <nav class="space-y-4">
+        <a href="{{ url_for('admin_panel') }}" class="block text-gray-700 hover:text-blue-500">Dashboard</a>
+        <a href="/update-profile" class="block text-gray-700 hover:text-blue-500">Update Profile</a>
+        <a href="/change-password" class="block text-gray-700 hover:text-blue-500">Change Password</a>
+        {% if user.role == 'admin' %}
+        <a href="/users" class="block text-gray-700 hover:text-blue-500">Manage Users</a>
+        {% endif %}
+        <a href="/logout" class="block text-gray-700 hover:text-blue-500">Logout</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6 overflow-y-auto">
+      <header class="mb-6">
+        <h2 class="text-3xl font-semibold text-gray-800">Profile Management Panel</h2>
+        <p class="text-gray-500">Manage your profile information</p>
+      </header>
+
+      <!-- Profile Management Card -->
+      <section class="bg-white p-6 rounded-lg shadow mb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Profile Management</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <a href="/update-profile" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-center">Update Profile Information</a>
+          <a href="/change-password" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 text-center">Change Password</a>
+          {% if user.role == 'admin' %}
+          <a href="/users" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 text-center col-span-2">Manage Users</a>
+          {% endif %}
+        </div>
+      </section>
+
+      <!-- Role-Based Features -->
+      <section class="bg-white p-6 rounded-lg shadow mb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">
+          Your Role: {{ user.role|capitalize }}
+          {% if user.role == 'employee' %}
+            ({{ user.employee_type|capitalize }})
+          {% endif %}
+        </h3>
+        <div class="text-gray-700">
+          {% if user.role == 'admin' %}
+          <p class="mb-2">As an Admin, you can:</p>
+          <ul class="list-disc pl-6 space-y-1">
+            <li>Manage all users' profiles and roles</li>
+            <li>Reset passwords for any user</li>
+            <li>Access all system features</li>
+          </ul>
+          {% elif user.role == 'manager' %}
+          <p class="mb-2">As a Manager, you can:</p>
+          <ul class="list-disc pl-6 space-y-1">
+            <li>Monitor sales and inventory</li>
+            <li>Oversee employee tasks</li>
+            <li>Update your own profile information</li>
+          </ul>
+          {% elif user.role == 'employee' %}
+            {% if user.employee_type == 'farmer' %}
+            <p class="mb-2">As a Farmer, you can:</p>
+            <ul class="list-disc pl-6 space-y-1">
+              <li>Update feeding and task status</li>
+              <li>Manage poultry health records</li>
+              <li>Track egg production and quality</li>
+              <li>Update your own profile information</li>
+            </ul>
+            {% elif user.employee_type == 'delivery' %}
+            <p class="mb-2">As a Delivery Man, you can:</p>
+            <ul class="list-disc pl-6 space-y-1">
+              <li>View delivery assignments</li>
+              <li>Update delivery status</li>
+              <li>Track delivery routes</li>
+              <li>Update your own profile information</li>
+            </ul>
+            {% endif %}
+          {% elif user.role == 'customer' %}
+          <p class="mb-2">As a Customer, you can:</p>
+          <ul class="list-disc pl-6 space-y-1">
+            <li>View and place orders for products</li>
+            <li>Update your own profile information</li>
+            <li>Change your password for secure access</li>
+          </ul>
+          {% endif %}
+        </div>
+      </section>
+
+      <!-- Security Section -->
+      <section class="bg-white p-6 rounded-lg shadow">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Security Tips</h3>
+        <ul class="list-disc pl-6 space-y-2 text-gray-700">
+          <li>Use a strong, unique password</li>
+          <li>Change your password regularly</li>
+          <li>Keep your profile information up to date</li>
+          <li>Never share your password with others</li>
+          <li>Ensure you log out when using shared devices</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
