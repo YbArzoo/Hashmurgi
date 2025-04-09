@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request, redirect, url_for
 
 app = Flask(__name__)
 
@@ -7,23 +7,50 @@ app = Flask(__name__)
 def home():
     return render_template('index.html')
 
-# Admin panel main page
+# Admin panel route
 @app.route('/admin')
 def admin_panel():
     return render_template('admin_panel.html')
 
-# Additional admin panel feature placeholders (for future routing)
-@app.route('/edit-user-role')
-def edit_user_role():
-    return "<h2>Edit User Roles Page (coming soon)</h2>"
-
-@app.route('/add-admin')
+# Add Admin (GET + POST)
+@app.route('/add-admin', methods=['GET', 'POST'])
 def add_admin():
-    return "<h2>Add New Admin Page (coming soon)</h2>"
+    if request.method == 'POST':
+        name = request.form['name']
+        email = request.form['email']
+        password = request.form['password']
+        print(f"[ADD ADMIN] Name: {name}, Email: {email}")
+        return redirect(url_for('admin_panel'))
+    return render_template('add-admin.html')
 
-@app.route('/delete-users')
+# Edit User Role (GET + POST)
+@app.route('/edit-user-role', methods=['GET', 'POST'])
+def edit_user_role():
+    users = [
+        {"id": 1, "name": "Arzoo", "role": "Customer"},
+        {"id": 2, "name": "Baaker", "role": "Manager"},
+        {"id": 3, "name": "Chuppu", "role": "Employee"}
+    ]
+    if request.method == 'POST':
+        user_id = request.form['user_id']
+        new_role = request.form['new_role']
+        print(f"[EDIT ROLE] User ID: {user_id}, New Role: {new_role}")
+        return redirect(url_for('admin_panel'))
+    return render_template('edit-user-role.html', users=users)
+
+# Delete User (GET + POST)
+@app.route('/delete-users', methods=['GET', 'POST'])
 def delete_users():
-    return "<h2>Delete Users Page (coming soon)</h2>"
+    users = [
+        {"id": 1, "name": "Arzoo", "role": "Customer"},
+        {"id": 2, "name": "Baaker", "role": "Manager"},
+        {"id": 3, "name": "Chuppu", "role": "Employee"}
+    ]
+    if request.method == 'POST':
+        user_id = request.form['user_id']
+        print(f"[DELETE USER] User ID: {user_id}")
+        return redirect(url_for('admin_panel'))
+    return render_template('delete-users.html', users=users)
 
 if __name__ == '__main__':
     app.run(debug=True)
