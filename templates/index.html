@@ -18,7 +18,20 @@
           <li class="nav-item"><a class="nav-link text-light" href="#">Our Story</a></li>
           <li class="nav-item"><a class="nav-link text-light" href="#">About Us</a></li>
           <li class="nav-item"><a class="nav-link text-light" href="#">Contact</a></li>
-          <li class="nav-item"><a class="nav-link text-light" href="#">Buy now</a></li>
+          {% if 'user_email' in session %}
+          <li class="nav-item">
+              <a class="nav-link text-light" href="#">Welcome, {{ users[session['user_email']]['name'] }}</a>
+          </li>
+          <li class="nav-item">
+              <a class="nav-link text-light" href="{{ url_for('logout') }}">Logout</a>
+          </li>
+          {% else %}
+          <li class="nav-item">
+              <a class="nav-link text-light" href="{{ url_for('login') }}">Login</a>
+          </li>
+          {% endif %}
+          
+
         </ul>
       </nav>
     </div>

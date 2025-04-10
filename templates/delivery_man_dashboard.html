@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Delivery Dashboard - HashMurgi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="flex h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white shadow-md px-4 py-6">
+      <h1 class="text-2xl font-bold text-green-600 mb-6">Delivery Panel</h1>
+      <nav class="space-y-4">
+        <a href="#" class="block text-gray-700 hover:text-green-500">Dashboard</a>
+        <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile</a>
+        <a href="#" class="block text-gray-700 hover:text-green-500">Assigned Orders</a>
+        <a href="#" class="block text-gray-700 hover:text-green-500">Delivery Map</a>
+        <a href="#" class="block text-gray-700 hover:text-green-500">Report Issues</a>
+        <a href="#" class="block text-gray-700 hover:text-green-500">Income</a>
+        <a href="/logout" class="block text-gray-700 hover:text-red-500">Logout</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6 overflow-y-auto">
+      <header class="mb-6">
+        <h2 class="text-3xl font-semibold text-gray-800">Welcome, {{ user.name }}</h2>
+        <p class="text-gray-500">Track your orders and delivery tasks here.</p>
+      </header>
+
+      <!-- Tasks Overview -->
+      <section class="bg-white p-6 rounded-lg shadow mb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Today's Deliveries</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <a href="#" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-center">View Orders</a>
+          <a href="#" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 text-center">Previous Orders</a>
+          <a href="#" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 text-center">Customer Feedback</a>
+        </div>
+      </section>
+
+      <!-- Notifications -->
+      <section class="bg-white p-6 rounded-lg shadow">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Delivery Alerts</h3>
+        <p class="text-gray-600">No critical alerts at this time.</p>
+      </section>
+      <section class="bg-white p-6 rounded-lg shadow">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Mark Delivered</h3>
+        <p class="text-gray-600">Not yet</p>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

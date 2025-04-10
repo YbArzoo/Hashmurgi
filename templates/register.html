@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - HashMurgi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+  <div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow">
+    <h2 class="text-2xl font-bold mb-4 text-blue-600">Register</h2>
+
+    <div class="text-sm text-gray-600 mb-4">
+      Note: For testing purposes, email verification is disabled. You will be automatically logged in after registration.
+    </div>
+    
+    {% if error %}
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+      {{ error }}
+    </div>
+    {% endif %}
+    
+    <form method="POST" action="/register" class="space-y-4">
+      <div>
+        <label class="block text-gray-700 mb-1">Full Name</label>
+        <input type="text" name="name" placeholder="Enter your full name" class="w-full p-2 border border-gray-300 rounded" required>
+      </div>
+      
+      <div>
+        <label class="block text-gray-700 mb-1">Email Address</label>
+        <input type="email" name="email" placeholder="Enter your email" class="w-full p-2 border border-gray-300 rounded" required>
+      </div>
+      
+      <div>
+        <label class="block text-gray-700 mb-1">Password</label>
+        <input type="password" name="password" placeholder="Enter password" class="w-full p-2 border border-gray-300 rounded" required>
+      </div>
+      
+      <div>
+        <label class="block text-gray-700 mb-1">Role</label>
+        <select name="role" id="role" class="w-full p-2 border border-gray-300 rounded" onchange="toggleEmployeeType()">
+          <option value="customer">Customer</option>
+          <option value="employee">Employee</option>
+          <option value="manager">Manager</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      
+      <div id="employee-type-container" class="hidden">
+        <label class="block text-gray-700 mb-1">Employee Type</label>
+        <select name="employee_type" class="w-full p-2 border border-gray-300 rounded">
+          <option value="farmer">Farmer</option>
+          <option value="delivery">Delivery Man</option>
+        </select>
+      </div>
+      
+      <div class="flex space-x-4">
+        <a href="/login" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 flex-1 text-center">Already have an account? Login</a>
+        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex-1">Register</button>
+      </div>
+    </form>
+  </div>
+  
+  <script>
+    function toggleEmployeeType() {
+      const roleSelect = document.getElementById('role');
+      const employeeTypeContainer = document.getElementById('employee-type-container');
+      
+      if (roleSelect.value === 'employee') {
+        employeeTypeContainer.classList.remove('hidden');
+      } else {
+        employeeTypeContainer.classList.add('hidden');
+      }
+    }
+  </script>
+</body>
+</html>
