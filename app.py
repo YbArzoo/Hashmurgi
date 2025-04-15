@@ -43,58 +43,106 @@ def add_admin():
         name = request.form['name']
         email = request.form['email']
         password = request.form['password']
-        print(f"[ADD ADMIN] Name: {name}, Email: {email}")
-        return redirect(url_for('admin_panel'))
+        
+        # Check if email already exists in the database
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            flash('Email is already registered.', 'danger')
+            return render_template('add-admin.html')
+
+        # Hash the password before saving to the database
+        hashed_password = generate_password_hash(password)
+        
+        # Create a new admin user
+        new_admin = User(
+            name=name,
+            email=email,
+            password=hashed_password,
+            role='admin',  # Set the role to admin by default
+            phone='',
+            address='',
+            blood_group='O+',
+            image=None
+        )
+        
+        # Add the new admin to the database
+        db.session.add(new_admin)
+        db.session.commit()
+
+        flash('New admin added successfully!', 'success')
+        return redirect(url_for('admin_panel'))  # Redirect back to the admin panel after adding the admin
+
     return render_template('add-admin.html')
+
 
 # Edit User Role (GET + POST)
 @app.route('/edit-user-role', methods=['GET', 'POST'])
 def edit_user_role():
-    users = [
-        {"id": 1, "name": "Arzoo", "role": "Customer"},
-        {"id": 2, "name": "Baaker", "role": "Manager"},
-        {"id": 3, "name": "Chuppu", "role": "Employee"}
-    ]
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user = User.query.get(session['user_id'])
+    if not user or user.role != 'admin':  # Check if user exists and is an admin
+        return redirect(url_for('login'))  # Or return to a page indicating they don't have admin rights
+
+    users = User.query.all()  # Fetch all users from the database
+
     if request.method == 'POST':
         user_id = request.form['user_id']
         new_role = request.form['new_role']
-        print(f"[EDIT ROLE] User ID: {user_id}, New Role: {new_role}")
-        return redirect(url_for('admin_panel'))
+        user_to_update = User.query.get(user_id)
+
+        if user_to_update:
+            user_to_update.role = new_role  # Update the user's role
+            db.session.commit()  # Save changes to the database
+
+        return redirect(url_for('admin_panel'))  # Redirect back to the admin panel after updating the role
+
     return render_template('edit-user-role.html', users=users)
+
+
 
 # Delete User (GET + POST)
 @app.route('/delete-users', methods=['GET', 'POST'])
 def delete_users():
-    users = [
-        {"id": 1, "name": "Arzoo", "role": "Customer"},
-        {"id": 2, "name": "Baaker", "role": "Manager"},
-        {"id": 3, "name": "Chuppu", "role": "Employee"}
-    ]
+    if 'user_id' not in session or User.query.get(session['user_id']).role != 'admin':
+        return redirect(url_for('login'))
+
+    users = User.query.all()  # Fetch all users from the database
+
     if request.method == 'POST':
         user_id = request.form['user_id']
-        print(f"[DELETE USER] User ID: {user_id}")
-        return redirect(url_for('admin_panel'))
+        user_to_delete = User.query.get(user_id)
+
+        if user_to_delete:
+            db.session.delete(user_to_delete)
+            db.session.commit()  # Delete the user from the database
+
+        return redirect(url_for('admin_panel'))  # Redirect back to the admin panel after deletion
+
     return render_template('delete-users.html', users=users)
+
 
 
 @app.route('/profile-management')
 def profile_management():
     user_id = session.get('user_id')  # Get the logged-in user email
-    user = User.query.get(user_id) # Get the user data from the users dictionary
+    user = User.query.get(user_id)  # Get the user data from the users table
     
     if not user:
         return redirect(url_for('login'))  # Redirect to login if user not found
     
-    if user['role'] == 'admin':
+    if user.role == 'admin':
         return render_template('profile_management.html', user=user)  # Admin's profile management page
-    elif user['role'] == 'customer':
+    elif user.role == 'customer':
         return render_template('profile_customer.html', user=user)  # Customer's profile management page
-    elif user['role'] == 'employee' and user['employee_type'] == 'delivery':
+    elif user.role == 'delivery_man':  # Changed from 'employee' to 'delivery_man'
         return render_template('profile_delivery_man.html', user=user)  # Delivery man's profile management page
-    elif user['role'] == 'manager':
+    elif user.role == 'manager':
         return render_template('profile_manager.html', user=user)  # Manager's profile management page
     else:
         return redirect(url_for('home'))  # Redirect to home page for other roles
+
 
 
 
@@ -104,17 +152,34 @@ def profile_management():
 def update_profile():
     user_id = session.get('user_id')
     user = User.query.get(user_id)
+
+    if not user:
+        return redirect(url_for('login'))
+
     error = None
 
-
     if request.method == 'POST':
-        user['name'] = request.form.get('name')
-        user['phone'] = request.form.get('phone')
-        user['address'] = request.form.get('address')
-        user['blood_group'] = request.form.get('blood_group')
-        flash('Profile updated successfully')
-        return redirect(url_for('index'))
+        # Ensure the email is included in the update
+        user.name = request.form.get('name')
+        user.email = request.form.get('email')  # Correctly handle email field
+        user.phone = request.form.get('phone')
+        user.address = request.form.get('address')
+        user.blood_group = request.form.get('blood_group')
+
+        # Handle image upload
+        image = request.files.get('image')
+        if image:
+            image_filename = secure_filename(image.filename)
+            image.save(os.path.join('static/images', image_filename))
+            user.image = image_filename
+
+        db.session.commit()  # Commit the changes to the database
+        flash('Profile updated successfully', 'success')
+        return redirect(url_for('profile_management'))
+
     return render_template('update_profile.html', user=user, error=error)
+
+
 
 
 @app.route('/users')
@@ -150,11 +215,11 @@ def select_user():
 @app.route('/manager-dashboard')
 def manager_dashboard():
     user_id = session.get('user_id')
-    user = User.query.get(user_id) # Fetch user details based on email
+    user = User.query.get(user_id)
 
-    if user and user['role'] == 'manager':
+    if user and user.role == 'manager':  # Use dot notation
         return render_template('manager-dashboard.html', user=user)
-    return redirect(url_for('home'))  # Redirect if user is not a manager
+    return redirect(url_for('home'))  # Redirect if the user is not a manager
 
 
 
@@ -231,22 +296,23 @@ def generate_invoice(order_id):
 @app.route('/customer-dashboard')
 def customer_dashboard():
     user_id = session.get('user_id')
-    user = User.query.get(user_id) # Fetch user data from users dictionary
+    user = User.query.get(user_id)
     
-    if not user or user['role'] != 'customer':
-        return redirect(url_for('login'))  # Redirect to login if not a customer
+    if not user or user.role != 'customer':  # Make sure the user is a customer
+        return redirect(url_for('home'))  # Redirect if not a customer
     
     return render_template('customer_dashboard.html', user=user)
+
 
 @app.route('/delivery-dashboard')
 def delivery_dashboard():
     user_id = session.get('user_id')
     user = User.query.get(user_id)
-  # Get user details based on email
 
-    if user and user['role'] == 'employee' and user['employee_type'] == 'delivery':
+    if user and user.role == 'delivery_man':  # Check for 'delivery_man' role
         return render_template('delivery_man_dashboard.html', user=user)
     return redirect(url_for('home'))  # Redirect if user is not a delivery man
+
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -280,11 +346,12 @@ def login():
 
 
 
-
-@app.route('/logout')
+@app.route('/logout', methods=['GET', 'POST'])
 def logout():
-    session.pop('user_id', None)
-    return redirect(url_for('home'))
+    session.pop('user_id', None)  # Clear the session
+    return redirect(url_for('home'))  # Redirect to the homepage (index.html)
+
+
 
 
 

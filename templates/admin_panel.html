@@ -25,6 +25,11 @@
         <a href="#" class="block text-gray-700 hover:text-blue-500">Financials</a>
         <a href="#" class="block text-gray-700 hover:text-blue-500">Notifications</a>
       </nav>
+
+      <!-- Logout Button -->
+      <form action="{{ url_for('logout') }}" method="POST" class="mt-6">
+        <button type="submit" class="w-full bg-red-500 text-white py-2 rounded hover:bg-red-600">Logout</button>
+      </form>
     </aside>
 
     <!-- Main Content -->

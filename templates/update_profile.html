@@ -39,96 +39,26 @@
     
     <!-- Profile Update Form -->
     <form method="POST" action="/update-profile" class="space-y-4" enctype="multipart/form-data">
-      {% if user.role == 'admin' and selected_user %}
-      <input type="hidden" name="target_user_id" value="{{ selected_user.id }}">
-      
-      <div>
-        <label class="block text-gray-700 mb-1">Role</label>
-        <select name="role" id="admin-role-select" class="w-full p-2 border border-gray-300 rounded" onchange="toggleAdminEmployeeType()">
-          <option value="customer" {% if selected_user.role == 'customer' %}selected{% endif %}>Customer</option>
-          <option value="employee" {% if selected_user.role == 'employee' %}selected{% endif %}>Employee</option>
-          <option value="manager" {% if selected_user.role == 'manager' %}selected{% endif %}>Manager</option>
-          <option value="admin" {% if selected_user.role == 'admin' %}selected{% endif %}>Admin</option>
-        </select>
-      </div>
-      
-      <div id="admin-employee-type-container" {% if selected_user.role != 'employee' %}class="hidden"{% endif %}>
-        <label class="block text-gray-700 mb-1">Employee Type</label>
-        <select name="employee_type" class="w-full p-2 border border-gray-300 rounded">
-          <option value="farmer" {% if selected_user.employee_type == 'farmer' %}selected{% endif %}>Farmer</option>
-          <option value="delivery" {% if selected_user.employee_type == 'delivery' %}selected{% endif %}>Delivery Man</option>
-        </select>
-      </div>
-      
-      <div>
-        <label class="block text-gray-700 mb-1">Full Name</label>
-        <input type="text" name="name" value="{{ selected_user.name }}" class="w-full p-2 border border-gray-300 rounded">
-      </div>
-      
-      <div>
-        <label class="block text-gray-700 mb-1">Email</label>
-        <input type="email" name="email" value="{{ selected_user.email }}" class="w-full p-2 border border-gray-300 rounded">
-      </div>
-      
-      <div>
-        <label class="block text-gray-700 mb-1">Phone Number</label>
-        <input type="text" name="phone" value="{{ selected_user.phone }}" class="w-full p-2 border border-gray-300 rounded">
-      </div>
-      
-      <div>
-        <label class="block text-gray-700 mb-1">Address</label>
-        <textarea name="address" class="w-full p-2 border border-gray-300 rounded">{{ selected_user.address }}</textarea>
-      </div>
-      
-      <div>
-        <label class="block text-gray-700 mb-1">Blood Group</label>
-        <select name="blood_group" class="w-full p-2 border border-gray-300 rounded">
-          <option value="A+" {% if selected_user.blood_group == 'A+' %}selected{% endif %}>A+</option>
-          <option value="A-" {% if selected_user.blood_group == 'A-' %}selected{% endif %}>A-</option>
-          <option value="B+" {% if selected_user.blood_group == 'B+' %}selected{% endif %}>B+</option>
-          <option value="B-" {% if selected_user.blood_group == 'B-' %}selected{% endif %}>B-</option>
-          <option value="AB+" {% if selected_user.blood_group == 'AB+' %}selected{% endif %}>AB+</option>
-          <option value="AB-" {% if selected_user.blood_group == 'AB-' %}selected{% endif %}>AB-</option>
-          <option value="O+" {% if selected_user.blood_group == 'O+' %}selected{% endif %}>O+</option>
-          <option value="O-" {% if selected_user.blood_group == 'O-' %}selected{% endif %}>O-</option>
-        </select>
-      </div>
-      
-      <div>
-        <label class="block text-gray-700 mb-1">Profile Image</label>
-        <input type="file" name="image" class="w-full p-2 border border-gray-300 rounded">
-        {% if selected_user.image %}
-        <p class="text-sm text-gray-500 mt-1">Current image: {{ selected_user.image }}</p>
-        {% endif %}
-      </div>
-      
-      {% else %}
-      <!-- Regular user updating their own profile -->
-      <div>
-        <label class="block text-gray-700 mb-1">Role</label>
-        <input type="text" value="{{ user.role|capitalize }}{% if user.role == 'employee' %} - {{ user.employee_type|capitalize }}{% endif %}" class="w-full p-2 border border-gray-300 rounded bg-gray-100" readonly>
-      </div>
-      
       <div>
         <label class="block text-gray-700 mb-1">Full Name</label>
         <input type="text" name="name" value="{{ user.name }}" class="w-full p-2 border border-gray-300 rounded">
       </div>
-      
+    
       <div>
         <label class="block text-gray-700 mb-1">Email</label>
         <input type="email" name="email" value="{{ user.email }}" class="w-full p-2 border border-gray-300 rounded">
       </div>
-      
+    
       <div>
         <label class="block text-gray-700 mb-1">Phone Number</label>
         <input type="text" name="phone" value="{{ user.phone }}" class="w-full p-2 border border-gray-300 rounded">
       </div>
-      
+    
       <div>
         <label class="block text-gray-700 mb-1">Address</label>
         <textarea name="address" class="w-full p-2 border border-gray-300 rounded">{{ user.address }}</textarea>
       </div>
-      
+    
       <div>
         <label class="block text-gray-700 mb-1">Blood Group</label>
         <select name="blood_group" class="w-full p-2 border border-gray-300 rounded">
@@ -142,21 +72,21 @@
           <option value="O-" {% if user.blood_group == 'O-' %}selected{% endif %}>O-</option>
         </select>
       </div>
-      
+    
       <div>
         <label class="block text-gray-700 mb-1">Profile Image</label>
         <input type="file" name="image" class="w-full p-2 border border-gray-300 rounded">
         {% if user.image %}
-        <p class="text-sm text-gray-500 mt-1">Current image: {{ user.image }}</p>
+          <p class="text-sm text-gray-500 mt-1">Current image: {{ user.image }}</p>
         {% endif %}
       </div>
-      {% endif %}
-      
+    
       <div class="flex space-x-4">
         <a href="/" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Cancel</a>
         <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Update Profile</button>
       </div>
     </form>
+    
   </div>
   
   <script>
