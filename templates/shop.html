@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shop - HashMurgi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="flex h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white shadow-md px-4 py-6 flex flex-col h-full">
+      <h1 class="text-2xl font-bold text-green-600 mb-6">Customer Panel</h1>
+      <nav class="space-y-4 flex-1">
+        <a href="{{ url_for('customer_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
+        <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile Management</a>
+        <a href="{{ url_for('shop') }}" class="block text-green-600 font-semibold">Shop now</a>
+        <a href="{{ url_for('track_customer_orders') }}" class="block text-gray-700 hover:text-green-500">Track My Orders</a>
+      </nav>
+      
+      <!-- Logout Button -->
+      <div class="mt-auto pt-6">
+        <a href="{{ url_for('logout') }}" class="block w-full bg-red-500 text-white py-2 px-4 rounded text-center hover:bg-red-600 transition">
+          Logout
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6 overflow-y-auto">
+      <header class="mb-6">
+        <h2 class="text-3xl font-semibold text-gray-800">Shop Products</h2>
+        <p class="text-gray-500">Browse and purchase quality poultry products</p>
+      </header>
+
+      <!-- Search and Filter -->
+      <section class="bg-white p-6 rounded-lg shadow mb-6">
+        <div class="flex flex-col md:flex-row gap-4">
+          <div class="flex-1">
+            <input type="text" placeholder="Search products..." class="w-full p-2 border rounded">
+          </div>
+          <div class="flex gap-2">
+            <select class="p-2 border rounded">
+              <option>All Categories</option>
+              <option>Eggs</option>
+              <option>Meat</option>
+              <option>Live Birds</option>
+              <option>Feed</option>
+            </select>
+            <select class="p-2 border rounded">
+              <option>Sort by: Featured</option>
+              <option>Price: Low to High</option>
+              <option>Price: High to Low</option>
+              <option>Newest</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Products Grid -->
+      <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <!-- Product Card 1 -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+          <div class="h-48 bg-gray-200 flex items-center justify-center">
+            <img src="/static/images/eggs.jpg" alt="Farm Fresh Eggs" class="h-full w-full object-cover" onerror="this.src='/static/images/placeholder.jpg'">
+          </div>
+          <div class="p-4">
+            <h3 class="text-lg font-semibold text-gray-800">Farm Fresh Eggs</h3>
+            <p class="text-gray-600 text-sm mb-2">Premium quality eggs from free-range chickens</p>
+            <div class="flex justify-between items-center mt-4">
+              <span class="text-green-600 font-bold">৳120 / dozen</span>
+              <button class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Product Card 2 -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+          <div class="h-48 bg-gray-200 flex items-center justify-center">
+            <img src="/static/images/chicken.jpg" alt="Broiler Chicken" class="h-full w-full object-cover" onerror="this.src='/static/images/placeholder.jpg'">
+          </div>
+          <div class="p-4">
+            <h3 class="text-lg font-semibold text-gray-800">Broiler Chicken</h3>
+            <p class="text-gray-600 text-sm mb-2">Fresh, hormone-free broiler chicken</p>
+            <div class="flex justify-between items-center mt-4">
+              <span class="text-green-600 font-bold">৳180 / kg</span>
+              <button class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Product Card 3 -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+          <div class="h-48 bg-gray-200 flex items-center justify-center">
+            <img src="/static/images/feed.jpg" alt="Premium Chicken Feed" class="h-full w-full object-cover" onerror="this.src='/static/images/placeholder.jpg'">
+          </div>
+          <div class="p-4">
+            <h3 class="text-lg font-semibold text-gray-800">Premium Chicken Feed</h3>
+            <p class="text-gray-600 text-sm mb-2">High-quality feed for optimal growth</p>
+            <div class="flex justify-between items-center mt-4">
+              <span class="text-green-600 font-bold">৳950 / 25kg</span>
+              <button class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Product Card 4 -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+          <div class="h-48 bg-gray-200 flex items-center justify-center">
+            <img src="/static/images/deshi-chicken.jpg" alt="Deshi Chicken" class="h-full w-full object-cover" onerror="this.src='/static/images/placeholder.jpg'">
+          </div>
+          <div class="p-4">
+            <h3 class="text-lg font-semibold text-gray-800">Deshi Chicken</h3>
+            <p class="text-gray-600 text-sm mb-2">Organic, free-range local chicken</p>
+            <div class="flex justify-between items-center mt-4">
+              <span class="text-green-600 font-bold">৳350 / kg</span>
+              <button class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Product Card 5 -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+          <div class="h-48 bg-gray-200 flex items-center justify-center">
+            <img src="/static/images/duck.jpg" alt="Duck Eggs" class="h-full w-full object-cover" onerror="this.src='/static/images/placeholder.jpg'">
+          </div>
+          <div class="p-4">
+            <h3 class="text-lg font-semibold text-gray-800">Duck Eggs</h3>
+            <p class="text-gray-600 text-sm mb-2">Fresh duck eggs from our farm</p>
+            <div class="flex justify-between items-center mt-4">
+              <span class="text-green-600 font-bold">৳150 / dozen</span>
+              <button class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Product Card 6 -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+          <div class="h-48 bg-gray-200 flex items-center justify-center">
+            <img src="/static/images/chicks.jpg" alt="Day-Old Chicks" class="h-full w-full object-cover" onerror="this.src='/static/images/placeholder.jpg'">
+          </div>
+          <div class="p-4">
+            <h3 class="text-lg font-semibold text-gray-800">Day-Old Chicks</h3>
+            <p class="text-gray-600 text-sm mb-2">Healthy chicks for your poultry farm</p>
+            <div class="flex justify-between items-center mt-4">
+              <span class="text-green-600 font-bold">৳45 / chick</span>
+              <button class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pagination -->
+      <div class="flex justify-center mt-6">
+        <nav class="inline-flex rounded-md shadow">
+          <a href="#" class="py-2 px-4 bg-white border border-gray-300 text-gray-500 hover:bg-gray-50">Previous</a>
+          <a href="#" class="py-2 px-4 bg-green-500 border border-green-500 text-white">1</a>
+          <a href="#" class="py-2 px-4 bg-white border border-gray-300 text-gray-500 hover:bg-gray-50">2</a>
+          <a href="#" class="py-2 px-4 bg-white border border-gray-300 text-gray-500 hover:bg-gray-50">3</a>
+          <a href="#" class="py-2 px-4 bg-white border border-gray-300 text-gray-500 hover:bg-gray-50">Next</a>
+        </nav>
+      </div>
+    </main>
+  </div>
+
+  <!-- Shopping Cart Floating Button -->
+  <div class="fixed bottom-6 right-6">
+    <button class="bg-green-600 text-white p-4 rounded-full shadow-lg hover:bg-green-700">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+      </svg>
+    </button>
+  </div>
+</body>
+</html>

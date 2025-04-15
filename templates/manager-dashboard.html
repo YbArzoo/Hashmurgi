@@ -12,18 +12,19 @@
     <aside class="w-64 bg-white shadow-md px-4 py-6">
       <h1 class="text-2xl font-bold text-green-600 mb-6">Manager Panel</h1>
       <nav class="space-y-4">
-        <a href="#" class="block text-gray-700 hover:text-green-500">Dashboard</a>
+        <a href="{{ url_for('manager_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
         <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">
           Profile Management
         </a>
-        <a href="#" class="block text-gray-700 hover:text-green-500">Poultry Stock</a>
-        <a href="#" class="block text-gray-700 hover:text-green-500">Add Product</a>
-        <a href="#" class="block text-gray-700 hover:text-green-500">Vaccination Schedule</a>
-        <a href="#" class="block text-gray-700 hover:text-green-500">Production Records</a>
-        <a href="#" class="block text-gray-700 hover:text-green-500">Feed & Resources</a>
-        <a href="#" class="block text-gray-700 hover:text-green-500">Notifications</a>
+        <a href="{{ url_for('poultry_stock') }}" class="block text-gray-700 hover:text-green-500">Poultry Stock</a>
+        <a href="{{ url_for('add_product') }}" class="block text-gray-700 hover:text-green-500">Add Product</a>
+        <a href="{{ url_for('vaccination_schedule') }}" class="block text-gray-700 hover:text-green-500">Vaccination Schedule</a>
+        <a href="{{ url_for('production_record') }}" class="block text-gray-700 hover:text-green-500">Production Records</a>
+        <a href="{{ url_for('feed_resources') }}" class="block text-gray-700 hover:text-green-500">Feed & Resources</a>
+        <a href="{{ url_for('notifications') }}" class="block text-gray-700 hover:text-green-500">Notifications</a>
         <a href="{{ url_for('orders') }}" class="block text-gray-700 hover:text-green-500">Track Order</a>
-       
+        <!-- Add this line for logout -->
+        <a href="{{ url_for('logout') }}" class="block text-red-600 hover:text-red-800">Logout</a>
       </nav>
     </aside>
 
@@ -38,13 +39,12 @@
       <section class="bg-white p-6 rounded-lg shadow mb-6">
         <h3 class="text-xl font-bold text-gray-800 mb-4">Quick Actions</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <a href="#" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-center">Check Stock</a>
+          <a href="{{ url_for('poultry_stock') }}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-center">Check Stock</a>
           <a href="{{ url_for('orders') }}" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 text-center">Track Orders</a>
           <a href="#" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 text-center">Employee List</a>
           <a href="{{ url_for('add_product') }}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
             Add Product
           </a>
-          
         </div>
       </section>
       

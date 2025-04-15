@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Delivery Map - HashMurgi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <style>
+    #map { height: 500px; width: 100%; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="flex h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white shadow-md px-4 py-6">
+      <h1 class="text-2xl font-bold text-green-600 mb-6">Delivery Panel</h1>
+      <nav class="space-y-4">
+        <a href="{{ url_for('delivery_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
+        <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile</a>
+        <a href="{{ url_for('assigned_orders') }}" class="block text-gray-700 hover:text-green-500">Assigned Orders</a>
+        <a href="{{ url_for('delivery_map') }}" class="block text-gray-700 hover:text-green-500">Delivery Map</a>
+        <a href="{{ url_for('report_issues') }}" class="block text-gray-700 hover:text-green-500">Report Issues</a>
+        <a href="{{ url_for('delivery_income') }}" class="block text-gray-700 hover:text-green-500">Income</a>
+        <a href="{{ url_for('logout') }}" class="block text-gray-700 hover:text-red-500">Logout</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6 overflow-y-auto">
+      <header class="mb-6">
+        <h2 class="text-3xl font-semibold text-gray-800">Delivery Map</h2>
+        <p class="text-gray-500">View your delivery locations and routes</p>
+      </header>
+
+      <!-- Map Controls -->
+      <section class="bg-white p-6 rounded-lg shadow mb-6">
+        <div class="flex flex-wrap gap-4 mb-4">
+          <button id="current-location" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+            My Current Location
+          </button>
+          <button id="optimize-route" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+            Optimize Route
+          </button>
+          <select id="delivery-filter" class="border rounded p-2">
+            <option value="all">All Deliveries</option>
+            <option value="pending">Pending</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+        
+        <!-- Map Container -->
+        <div id="map" class="rounded-lg"></div>
+      </section>
+
+      <!-- Delivery List -->
+      <section class="bg-white p-6 rounded-lg shadow">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Today's Delivery Locations</h3>
+        <div class="overflow-x-auto">
+          <table class="min-w-full bg-white">
+            <thead>
+              <tr class="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
+                <th class="py-3 px-6 text-left">Order ID</th>
+                <th class="py-3 px-6 text-left">Customer</th>
+                <th class="py-3 px-6 text-left">Address</th>
+                <th class="py-3 px-6 text-left">Distance</th>
+                <th class="py-3 px-6 text-left">Status</th>
+                <th class="py-3 px-6 text-left">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="text-gray-600 text-sm">
+              {% if locations %}
+                {% for location in locations %}
+                <tr class="border-b border-gray-200 hover:bg-gray-50">
+                  <td class="py-3 px-6">{{ location.order_id }}</td>
+                  <td class="py-3 px-6">{{ location.customer_name }}</td>
+                  <td class="py-3 px-6">{{ location.address }}</td>
+                  <td class="py-3 px-6">{{ location.distance }} km</td>
+                  <td class="py-3 px-6">
+                    <span class="{% if location.status == 'Pending' %}bg-yellow-200 text-yellow-800{% elif location.status == 'In Transit' %}bg-blue-200 text-blue-800{% elif location.status == 'Delivered' %}bg-green-200 text-green-800{% endif %} py-1 px-3 rounded-full text-xs">
+                      {{ location.status }}
+                    </span>
+                  </td>
+                  <td class="py-3 px-6">
+                    <button onclick="centerMap({{ location.lat }}, {{ location.lng }})" class="bg-blue-500 text-white px-2 py-1 rounded text-xs">View on Map</button>
+                  </td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="6" class="py-4 px-6 text-center">No delivery locations for today.</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // Initialize the map
+    var map = L.map('map').setView([23.8103, 90.4125], 13); // Default to Dhaka, Bangladesh
+
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Sample delivery locations (replace with actual data from backend)
+    const deliveryLocations = [
+      { id: 1, lat: 23.8103, lng: 90.4125, name: "Customer A", status: "Pending" },
+      { id: 2, lat: 23.8203, lng: 90.4225, name: "Customer B", status: "In Transit" },
+      { id: 3, lat: 23.8003, lng: 90.4025, name: "Customer C", status: "Delivered" }
+    ];
+
+    // Add markers for each delivery location
+    deliveryLocations.forEach(location => {
+      const marker = L.marker([location.lat, location.lng]).addTo(map);
+      marker.bindPopup(`<b>${location.name}</b><br>Status: ${location.status}`);
+    });
+
+    // Function to center map on a specific location
+    function centerMap(lat, lng) {
+      map.setView([lat, lng], 15);
+    }
+
+    // Get current location
+    document.getElementById('current-location').addEventListener('click', function() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(position => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          
+          // Add marker for current location
+          const currentLocationMarker = L.marker([lat, lng]).addTo(map);
+          currentLocationMarker.bindPopup("<b>Your Current Location</b>").openPopup();
+          
+          // Center map on current location
+          map.setView([lat, lng], 15);
+        });
+      } else {
+        alert("Geolocation is not supported by this browser.");
+      }
+    });
+
+    // Filter deliveries
+    document.getElementById('delivery-filter').addEventListener('change', function() {
+      const filter = this.value;
+      // In a real application, you would filter the markers based on the selected value
+      console.log("Filter changed to:", filter);
+    });
+
+    // Optimize route (placeholder function)
+    document.getElementById('optimize-route').addEventListener('click', function() {
+      alert("Route optimization would be implemented here with a routing service API");
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Income - HashMurgi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="flex h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white shadow-md px-4 py-6">
+      <h1 class="text-2xl font-bold text-green-600 mb-6">Delivery Panel</h1>
+      <nav class="space-y-4">
+        <a href="{{ url_for('delivery_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
+        <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile</a>
+        <a href="{{ url_for('assigned_orders') }}" class="block text-gray-700 hover:text-green-500">Assigned Orders</a>
+        <a href="{{ url_for('delivery_map') }}" class="block text-gray-700 hover:text-green-500">Delivery Map</a>
+        <a href="{{ url_for('report_issues') }}" class="block text-gray-700 hover:text-green-500">Report Issues</a>
+        <a href="{{ url_for('delivery_income') }}" class="block text-gray-700 hover:text-green-500">Income</a>
+        <a href="{{ url_for('logout') }}" class="block text-gray-700 hover:text-red-500">Logout</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6 overflow-y-auto">
+      <header class="mb-6">
+        <h2 class="text-3xl font-semibold text-gray-800">Income Dashboard</h2>
+        <p class="text-gray-500">Track your earnings and payment history</p>
+      </header>
+
+      <!-- Income Summary -->
+      <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-lg font-semibold text-gray-700 mb-2">This Month</h3>
+          <p class="text-3xl font-bold text-green-600">৳{{ monthly_income }}</p>
+          <p class="text-sm text-gray-500 mt-1">From {{ monthly_deliveries }} deliveries</p>
+        </div>
+        
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-lg font-semibold text-gray-700 mb-2">This Week</h3>
+          <p class="text-3xl font-bold text-green-600">৳{{ weekly_income }}</p>
+          <p class="text-sm text-gray-500 mt-1">From {{ weekly_deliveries }} deliveries</p>
+        </div>
+        
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-lg font-semibold text-gray-700 mb-2">Today</h3>
+          <p class="text-3xl font-bold text-green-600">৳{{ daily_income }}</p>
+          <p class="text-sm text-gray-500 mt-1">From {{ daily_deliveries }} deliveries</p>
+        </div>
+      </section>
+
+      <!-- Income Chart -->
+      <section class="bg-white p-6 rounded-lg shadow mb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Income Trends</h3>
+        <div class="flex justify-end mb-4">
+          <select id="chart-period" class="border rounded p-2 text-sm">
+            <option value="week">Last 7 Days</option>
+            <option value="month">Last 30 Days</option>
+            <option value="year">Last 12 Months</option>
+          </select>
+        </div>
+        <div>
+          <canvas id="incomeChart" height="300"></canvas>
+        </div>
+      </section>
+
+      <!-- Payment History -->
+      <section class="bg-white p-6 rounded-lg shadow">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Payment History</h3>
+        <div class="overflow-x-auto">
+          <table class="min-w-full bg-white">
+            <thead>
+              <tr class="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
+                <th class="py-3 px-6 text-left">Payment ID</th>
+                <th class="py-3 px-6 text-left">Date</th>
+                <th class="py-3 px-6 text-left">Amount</th>
+                <th class="py-3 px-6 text-left">Method</th>
+                <th class="py-3 px-6 text-left">Status</th>
+              </tr>
+            </thead>
+            <tbody class="text-gray-600 text-sm">
+              {% if payments %}
+                {% for payment in payments %}
+                <tr class="border-b border-gray-200 hover:bg-gray-50">
+                  <td class="py-3 px-6">{{ payment.id }}</td>
+                  <td class="py-3 px-6">{{ payment.date }}</td>
+                  <td class="py-3 px-6">৳{{ payment.amount }}</td>
+                  <td class="py-3 px-6">{{ payment.method }}</td>
+                  <td class="py-3 px-6">
+                    <span class="{% if payment.status == 'Pending' %}bg-yellow-200 text-yellow-800{% elif payment.status == 'Completed' %}bg-green-200 text-green-800{% endif %} py-1 px-3 rounded-full text-xs">
+                      {{ payment.status }}
+                    </span>
+                  </td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="5" class="py-4 px-6 text-center">No payment history yet.</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // Sample data for the chart
+    const weeklyData = {
+      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      datasets: [{
+        label: 'Daily Income',
+        data: [500, 700, 600, 800, 750, 900, 850],
+        backgroundColor: 'rgba(34, 197, 94, 0.2)',
+        borderColor: 'rgba(34, 197, 94, 1)',
+        borderWidth: 2,
+        tension: 0.4
+      }]
+    };
+
+    const monthlyData = {
+      labels: Array.from({length: 30}, (_, i) => i + 1),
+      datasets: [{
+        label: 'Daily Income',
+        data: Array.from({length: 30}, () => Math.floor(Math.random() * 1000) + 500),
+        backgroundColor: 'rgba(34, 197, 94, 0.2)',
+        borderColor: 'rgba(34, 197, 94, 1)',
+        borderWidth: 2,
+        tension: 0.4
+      }]
+    };
+
+    const yearlyData = {
+      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+      datasets: [{
+        label: 'Monthly Income',
+        data: Array.from({length: 12}, () => Math.floor(Math.random() * 20000) + 10000),
+        backgroundColor: 'rgba(34, 197, 94, 0.2)',
+        borderColor: 'rgba(34, 197, 94, 1)',
+        borderWidth: 2,
+        tension: 0.4
+      }]
+    };
+
+    // Initialize the chart
+    const ctx = document.getElementById('incomeChart').getContext('2d');
+    let incomeChart = new Chart(ctx, {
+      type: 'line',
+      data: weeklyData,
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'top',
+          },
+          title: {
+            display: true,
+            text: 'Income Over Time'
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: 'Income (৳)'
+            }
+          }
+        }
+      }
+    });
+
+    // Update chart based on selected period
+    document.getElementById('chart-period').addEventListener('change', function() {
+      const period = this.value;
+      
+      if (period === 'week') {
+        incomeChart.data = weeklyData;
+        incomeChart.options.plugins.title.text = 'Income - Last 7 Days';
+      } else if (period === 'month') {
+        incomeChart.data = monthlyData;
+        incomeChart.options.plugins.title.text = 'Income - Last 30 Days';
+      } else if (period === 'year') {
+        incomeChart.data = yearlyData;
+        incomeChart.options.plugins.title.text = 'Income - Last 12 Months';
+      }
+      
+      incomeChart.update();
+    });
+  </script>
+</body>
+</html>

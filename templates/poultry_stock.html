@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Poultry Stock - HashMurgi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="flex h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white shadow-md px-4 py-6">
+      <h1 class="text-2xl font-bold text-green-600 mb-6">Manager Panel</h1>
+      <nav class="space-y-4">
+        <a href="{{ url_for('manager_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
+        <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">
+          Profile Management
+        </a>
+        <a href="{{ url_for('poultry_stock') }}" class="block text-gray-700 hover:text-green-500">Poultry Stock</a>
+        <a href="{{ url_for('add_product') }}" class="block text-gray-700 hover:text-green-500">Add Product</a>
+        <a href="{{ url_for('vaccination_schedule') }}" class="block text-gray-700 hover:text-green-500">Vaccination Schedule</a>
+        <a href="{{ url_for('production_record') }}" class="block text-gray-700 hover:text-green-500">Production Records</a>
+        <a href="{{ url_for('feed_resources') }}" class="block text-gray-700 hover:text-green-500">Feed & Resources</a>
+        <a href="{{ url_for('notifications') }}" class="block text-gray-700 hover:text-green-500">Notifications</a>
+        <a href="{{ url_for('orders') }}" class="block text-gray-700 hover:text-green-500">Track Order</a>
+        <!-- Add this line for logout -->
+        <a href="{{ url_for('logout') }}" class="block text-red-600 hover:text-red-800">Logout</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6 overflow-y-auto">
+      <header class="mb-6">
+        <h2 class="text-3xl font-semibold text-gray-800">Poultry Stock</h2>
+        <p class="text-gray-500">Manage and track your poultry inventory</p>
+      </header>
+
+      <!-- Quick Actions -->
+      <section class="bg-white p-6 rounded-lg shadow mb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Quick Actions</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <a href="#" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-center">Add New Batch</a>
+          <a href="#" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 text-center">Record Mortality</a>
+          <a href="#" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 text-center">Transfer Stock</a>
+        </div>
+      </section>
+
+      <!-- Stock Summary -->
+      <section class="bg-white p-6 rounded-lg shadow mb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Stock Summary</h3>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+            <h4 class="text-lg font-semibold text-blue-700">Total Birds</h4>
+            <p class="text-3xl font-bold text-blue-800">1,250</p>
+            <p class="text-sm text-blue-600 mt-1">Across all batches</p>
+          </div>
+          <div class="bg-green-50 p-4 rounded-lg border border-green-100">
+            <h4 class="text-lg font-semibold text-green-700">Layers</h4>
+            <p class="text-3xl font-bold text-green-800">850</p>
+            <p class="text-sm text-green-600 mt-1">Egg production</p>
+          </div>
+          <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-100">
+            <h4 class="text-lg font-semibold text-yellow-700">Broilers</h4>
+            <p class="text-3xl font-bold text-yellow-800">350</p>
+            <p class="text-sm text-yellow-600 mt-1">Meat production</p>
+          </div>
+          <div class="bg-purple-50 p-4 rounded-lg border border-purple-100">
+            <h4 class="text-lg font-semibold text-purple-700">Chicks</h4>
+            <p class="text-3xl font-bold text-purple-800">50</p>
+            <p class="text-sm text-purple-600 mt-1">New additions</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Batch Details -->
+      <section class="bg-white p-6 rounded-lg shadow mb-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-bold text-gray-800">Batch Details</h3>
+          <div class="flex gap-2">
+            <select class="p-2 border rounded text-sm">
+              <option>All Types</option>
+              <option>Layers</option>
+              <option>Broilers</option>
+              <option>Chicks</option>
+            </select>
+            <input type="text" placeholder="Search batches..." class="p-2 border rounded text-sm">
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full bg-white border">
+            <thead>
+              <tr class="bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase">
+                <th class="py-2 px-4 border-b">Batch ID</th>
+                <th class="py-2 px-4 border-b">Type</th>
+                <th class="py-2 px-4 border-b">Breed</th>
+                <th class="py-2 px-4 border-b">Quantity</th>
+                <th class="py-2 px-4 border-b">Age</th>
+                <th class="py-2 px-4 border-b">Arrival Date</th>
+                <th class="py-2 px-4 border-b">Location</th>
+                <th class="py-2 px-4 border-b">Status</th>
+                <th class="py-2 px-4 border-b">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-b">
+                <td class="py-2 px-4">A123</td>
+                <td class="py-2 px-4">Layer</td>
+                <td class="py-2 px-4">Rhode Island Red</td>
+                <td class="py-2 px-4">500</td>
+                <td class="py-2 px-4">24 weeks</td>
+                <td class="py-2 px-4">Jan 15, 2025</td>
+                <td class="py-2 px-4">Shed 1</td>
+                <td class="py-2 px-4"><span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Healthy</span></td>
+                <td class="py-2 px-4">
+                  <button class="text-blue-500 hover:text-blue-700 mr-2">View</button>
+                  <button class="text-green-500 hover:text-green-700">Edit</button>
+                </td>
+              </tr>
+              <tr class="border-b">
+                <td class="py-2 px-4">B456</td>
+                <td class="py-2 px-4">Broiler</td>
+                <td class="py-2 px-4">Cobb 500</td>
+                <td class="py-2 px-4">350</td>
+                <td class="py-2 px-4">5 weeks</td>
+                <td class="py-2 px-4">Mar 10, 2025</td>
+                <td class="py-2 px-4">Shed 2</td>
+                <td class="py-2 px-4"><span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Healthy</span></td>
+                <td class="py-2 px-4">
+                  <button class="text-blue-500 hover:text-blue-700 mr-2">View</button>
+                  <button class="text-green-500 hover:text-green-700">Edit</button>
+                </td>
+              </tr>
+              <tr class="border-b">
+                <td class="py-2 px-4">C789</td>
+                <td class="py-2 px-4">Layer</td>
+                <td class="py-2 px-4">White Leghorn</td>
+                <td class="py-2 px-4">350</td>
+                <td class="py-2 px-4">30 weeks</td>
+                <td class="py-2 px-4">Dec 5, 2024</td>
+                <td class="py-2 px-4">Shed 3</td>
+                <td class="py-2 px-4"><span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">Attention Needed</span></td>
+                <td class="py-2 px-4">
+                  <button class="text-blue-500 hover:text-blue-700 mr-2">View</button>
+                  <button class="text-green-500 hover:text-green-700">Edit</button>
+                </td>
+              </tr>
+              <tr class="border-b">
+                <td class="py-2 px-4">D012</td>
+                <td class="py-2 px-4">Chick</td>
+                <td class="py-2 px-4">Brahma</td>
+                <td class="py-2 px-4">50</td>
+                <td class="py-2 px-4">2 weeks</td>
+                <td class="py-2 px-4">Apr 1, 2025</td>
+                <td class="py-2 px-4">Brooder</td>
+                <td class="py-2 px-4"><span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Healthy</span></td>
+                <td class="py-2 px-4">
+                  <button class="text-blue-500 hover:text-blue-700 mr-2">View</button>
+                  <button class="text-green-500 hover:text-green-700">Edit</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Mortality Records -->
+      <section class="bg-white p-6 rounded-lg shadow">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Recent Mortality Records</h3>
+        <div class="overflow-x-auto">
+          <table class="min-w-full bg-white border">
+            <thead>
+              <tr class="bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase">
+                <th class="py-2 px-4 border-b">Date</th>
+                <th class="py-2 px-4 border-b">Batch ID</th>
+                <th class="py-2 px-4 border-b">Count</th>
+                <th class="py-2 px-4 border-b">Cause</th>
+                <th class="py-2 px-4 border-b">Recorded By</th>
+                <th class="py-2 px-4 border-b">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-b">
+                <td class="py-2 px-4">Apr 10, 2025</td>
+                <td class="py-2 px-4">B456</td>
+                <td class="py-2 px-4">2</td>
+                <td class="py-2 px-4">Natural causes</td>
+                <td class="py-2 px-4">John Doe</td>
+                <td class="py-2 px-4">
+                  <button class="text-blue-500 hover:text-blue-700">View Details</button>
+                </td>
+              </tr>
+              <tr class="border-b">
+                <td class="py-2 px-4">Apr 5, 2025</td>
+                <td class="py-2 px-4">A123</td>
+                <td class="py-2 px-4">1</td>
+                <td class="py-2 px-4">Injury</td>
+                <td class="py-2 px-4">Jane Smith</td>
+                <td class="py-2 px-4">
+                  <button class="text-blue-500 hover:text-blue-700">View Details</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

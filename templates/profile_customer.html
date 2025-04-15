@@ -14,7 +14,9 @@
       <nav class="space-y-4">
         <a href="{{ url_for('customer_dashboard') }}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Go to Dashboard</a>
         <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-blue-500">Profile Management</a>
-        <a href="/logout" class="block text-gray-700 hover:text-blue-500">Logout</a>
+        <a href="{{ url_for('shop') }}" class="block text-gray-700 hover:text-blue-500">Shop Now</a>
+        <a href="{{ url_for('track_customer_orders') }}" class="block text-gray-700 hover:text-blue-500">Track My Orders</a>
+        <a href="{{ url_for('logout') }}" class="block text-gray-700 hover:text-blue-500">Logout</a>
       </nav>
     </aside>
 

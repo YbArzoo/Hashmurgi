@@ -14,9 +14,9 @@
       <nav class="space-y-4">
         <a href="{{ url_for('customer_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
         <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile Management</a>
-        <a href="/shop" class="block text-gray-700 hover:text-green-500">Shop now</a> <!-- Changed Poultry Stock -->
-        <a href="/track-orders" class="block text-gray-700 hover:text-green-500">Track My Orders</a> <!-- Changed Income -->
-        <a href="/logout" class="block text-gray-700 hover:text-red-500">Logout</a>
+        <a href="{{ url_for('shop') }}" class="block text-gray-700 hover:text-green-500">Shop now</a>
+        <a href="{{ url_for('track_customer_orders') }}" class="block text-gray-700 hover:text-green-500">Track My Orders</a>
+        <a href="{{ url_for('logout') }}" class="block text-gray-700 hover:text-red-500">Logout</a>
       </nav>
     </aside>
 
@@ -30,8 +30,8 @@
       <section class="bg-white p-6 rounded-lg shadow mb-6">
         <h3 class="text-xl font-bold text-gray-800 mb-4">Quick Access</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <a href="/shop" class="bg-blue-500 text-white px-4 py-3 rounded-lg text-center hover:bg-blue-600">Shop Now</a>
-          <a href="/track-orders" class="bg-yellow-500 text-white px-4 py-3 rounded-lg text-center hover:bg-yellow-600">Track Orders</a>
+          <a href="{{ url_for('shop') }}" class="bg-blue-500 text-white px-4 py-3 rounded-lg text-center hover:bg-blue-600">Shop Now</a>
+          <a href="{{ url_for('track_customer_orders') }}" class="bg-yellow-500 text-white px-4 py-3 rounded-lg text-center hover:bg-yellow-600">Track Orders</a>
         </div>
       </section>
 
