@@ -83,3 +83,94 @@ class DeliveryPayment(db.Model):
     
     # Relationship
     delivery_man = db.relationship('User', backref='payments')
+    
+    
+
+class Batch(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    batch_name = db.Column(db.String(100), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    arrival_date = db.Column(db.Date, nullable=False)
+    notes = db.Column(db.Text, nullable=True)
+    added_by = db.Column(db.Integer, db.ForeignKey('user.id'))  # Optional: track admin who added it
+
+    def __repr__(self):
+        return f"<Batch {self.batch_name}>"
+    
+    
+    
+class Vaccination(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    batch_id = db.Column(db.Integer, db.ForeignKey('batch.id'), nullable=False)
+    vaccine_name = db.Column(db.String(100), nullable=False)
+    scheduled_date = db.Column(db.Date, nullable=False)
+    status = db.Column(db.String(50), default='Scheduled')  # Scheduled, Completed, Missed
+    notes = db.Column(db.Text)
+
+    batch = db.relationship('Batch', backref='vaccinations')
+
+    def __repr__(self):
+        return f"<Vaccination {self.vaccine_name} for Batch {self.batch_id}>"
+
+
+
+class Production(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    batch_id = db.Column(db.Integer, db.ForeignKey('batch.id'), nullable=False)
+    production_date = db.Column(db.Date, nullable=False)
+    egg_count = db.Column(db.Integer, default=0)
+    meat_weight_kg = db.Column(db.Float, default=0.0)
+    notes = db.Column(db.Text)
+
+    batch = db.relationship('Batch', backref='productions')
+
+    def __repr__(self):
+        return f"<Production Batch {self.batch_id} on {self.production_date}>"
+    
+    
+
+class FeedLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    batch_id = db.Column(db.Integer, db.ForeignKey('batch.id'), nullable=False)
+    log_date = db.Column(db.Date, nullable=False)
+    feed_type = db.Column(db.String(100), nullable=False)
+    quantity_kg = db.Column(db.Float, nullable=False)
+    cost = db.Column(db.Float, nullable=False)
+    notes = db.Column(db.Text)
+
+    batch = db.relationship('Batch', backref='feed_logs')
+
+    def __repr__(self):
+        return f"<FeedLog {self.feed_type} for Batch {self.batch_id} on {self.log_date}>"
+
+
+
+class Sale(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    total_amount = db.Column(db.Float, nullable=False)
+    sale_date = db.Column(db.Date, nullable=False)
+    notes = db.Column(db.Text)
+
+    customer = db.relationship('User', foreign_keys=[customer_id])
+    product = db.relationship('Product')
+
+    def __repr__(self):
+        return f"<Sale {self.product.name} to {self.customer.name}>"
+
+
+class Invoice(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sale_id = db.Column(db.Integer, db.ForeignKey('sale.id'), nullable=False)
+    status = db.Column(db.String(20), default='Unpaid')  # Paid or Unpaid
+    issue_date = db.Column(db.Date, nullable=False)
+    due_date = db.Column(db.Date, nullable=True)
+    payment_method = db.Column(db.String(50))
+    notes = db.Column(db.Text)
+
+    sale = db.relationship('Sale', backref='invoice')
+
+    def __repr__(self):
+        return f"<Invoice {self.id} - {self.status}>"

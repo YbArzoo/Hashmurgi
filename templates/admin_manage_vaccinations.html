@@ -1,0 +1,90 @@
+<!-- templates/admin_manage_vaccinations.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Vaccination Schedule</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+
+    <div class="max-w-6xl mx-auto bg-white p-6 rounded shadow">
+        <h1 class="text-2xl font-bold mb-6">💉 Manage Vaccination Schedule</h1>
+
+        <!-- Vaccination Form -->
+        <form method="POST" action="/admin/vaccinations" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Select Batch</label>
+                <select name="batch_id" required class="w-full p-2 border rounded">
+                    {% for batch in batches %}
+                        <option value="{{ batch.id }}">{{ batch.batch_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Vaccine Name</label>
+                <input type="text" name="vaccine_name" required class="w-full p-2 border rounded" placeholder="e.g. Newcastle">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Scheduled Date</label>
+                <input type="date" name="scheduled_date" required class="w-full p-2 border rounded">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Status</label>
+                <select name="status" required class="w-full p-2 border rounded">
+                    <option value="Scheduled">Scheduled</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Missed">Missed</option>
+                </select>
+            </div>
+
+            <div class="col-span-full">
+                <label class="block text-sm font-medium text-gray-700">Notes</label>
+                <textarea name="notes" class="w-full p-2 border rounded" placeholder="Any additional information..."></textarea>
+            </div>
+
+            <div class="col-span-full">
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    ➕ Add Vaccination
+                </button>
+            </div>
+        </form>
+
+        <!-- Vaccination Records Table -->
+        <h2 class="text-xl font-semibold mb-4">📋 Vaccination Records</h2>
+        <table class="min-w-full bg-white border rounded shadow overflow-hidden">
+            <thead class="bg-gray-200 text-gray-700">
+                <tr>
+                    <th class="p-3 border">ID</th>
+                    <th class="p-3 border">Batch</th>
+                    <th class="p-3 border">Vaccine</th>
+                    <th class="p-3 border">Date</th>
+                    <th class="p-3 border">Status</th>
+                    <th class="p-3 border">Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in vaccinations %}
+                <tr class="border-t">
+                    <td class="p-3 border">{{ v.id }}</td>
+                    <td class="p-3 border">{{ v.batch.batch_name }}</td>
+                    <td class="p-3 border">{{ v.vaccine_name }}</td>
+                    <td class="p-3 border">{{ v.scheduled_date }}</td>
+                    <td class="p-3 border">{{ v.status }}</td>
+                    <td class="p-3 border">{{ v.notes or '' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="p-4 text-center text-gray-500">No vaccination records found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</body>
+</html>
+

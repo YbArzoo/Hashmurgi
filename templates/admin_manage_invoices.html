@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Invoices - Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+
+    <div class="max-w-7xl mx-auto bg-white p-6 rounded shadow">
+        <h1 class="text-2xl font-bold mb-6">Invoice Management</h1>
+
+        <!-- Invoice Table -->
+        <table class="min-w-full bg-white border rounded shadow overflow-hidden">
+            <thead class="bg-gray-200 text-gray-700">
+                <tr>
+                    <th class="p-3 border">ID</th>
+                    <th class="p-3 border">Customer</th>
+                    <th class="p-3 border">Product</th>
+                    <th class="p-3 border">Amount (BDT)</th>
+                    <th class="p-3 border">Issued</th>
+                    <th class="p-3 border">Due</th>
+                    <th class="p-3 border">Status</th>
+                    <th class="p-3 border">Payment Method</th>
+                    <th class="p-3 border">Update</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in invoices %}
+                <tr class="border-t">
+                    <td class="p-3 border">{{ invoice.id }}</td>
+                    <td class="p-3 border">{{ invoice.sale.customer.name }}</td>
+                    <td class="p-3 border">{{ invoice.sale.product.name }}</td>
+                    <td class="p-3 border">{{ invoice.sale.total_amount }}</td>
+                    <td class="p-3 border">{{ invoice.issue_date }}</td>
+                    <td class="p-3 border">{{ invoice.due_date or "N/A" }}</td>
+                    <td class="p-3 border text-center font-semibold {{ 'text-green-600' if invoice.status == 'Paid' else 'text-red-500' }}">
+                        {{ invoice.status }}
+                    </td>
+                    <td class="p-3 border">{{ invoice.payment_method or 'Not set' }}</td>
+                    <td class="p-3 border">
+                        <form method="POST" action="{{ url_for('manage_invoices') }}" class="flex items-center space-x-2">
+                            <input type="hidden" name="invoice_id" value="{{ invoice.id }}">
+                            <select name="status" class="border p-1 rounded text-sm">
+                                <option value="Paid" {% if invoice.status == 'Paid' %}selected{% endif %}>Paid</option>
+                                <option value="Unpaid" {% if invoice.status == 'Unpaid' %}selected{% endif %}>Unpaid</option>
+                            </select>
+                            <button type="submit" class="text-sm bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">
+                                Update
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" class="p-4 text-center text-gray-500">No invoices found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</body>
+</html>

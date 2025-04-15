@@ -2,11 +2,16 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from models import db, User, Order, OrderItem, DeliveryIssue, DeliveryPayment
+from models import db, User, Product, Order, OrderItem, DeliveryIssue, DeliveryPayment, Batch, Vaccination, Production, FeedLog, Sale, Invoice
 from config import Config
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
-from models import db, User, Product, Order, OrderItem, DeliveryIssue, DeliveryPayment
+from datetime import datetime
+from models import Vaccination
+from flask import make_response
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+import io
 
 
 
@@ -77,6 +82,177 @@ def add_admin():
 
     return render_template('add-admin.html')
 
+@app.route('/admin/manage_batches')
+def manage_batches():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user = User.query.get(session['user_id'])
+    if not user or user.role != 'admin':
+        return redirect(url_for('login'))
+
+    batches = Batch.query.order_by(Batch.arrival_date.desc()).all()
+    return render_template('admin_manage_batches.html', user=user, batches=batches)
+
+
+
+@app.route('/admin/add_batch', methods=['POST'])
+def add_batch():
+    batch_name = request.form['batch_name']
+    quantity = int(request.form['quantity'])
+    arrival_date_str = request.form['arrival_date']
+    notes = request.form['notes']
+    added_by=session['user_id']
+
+
+    # Convert string to date
+    arrival_date = datetime.strptime(arrival_date_str, '%Y-%m-%d').date()
+
+    # You can also get the admin user ID from session if needed
+    new_batch = Batch(
+        batch_name=batch_name,
+        quantity=quantity,
+        arrival_date=arrival_date,
+        notes=notes,
+        added_by=session.get('user_id')  # optional
+    )
+    db.session.add(new_batch)
+    db.session.commit()
+    return redirect('/admin/manage_batches')
+
+
+@app.route('/admin/feed-resources', methods=['GET', 'POST'])
+def manage_feed_resources():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user = User.query.get(session['user_id'])
+    if not user or user.role != 'admin':
+        return redirect(url_for('login'))
+
+    batches = Batch.query.all()
+
+    if request.method == 'POST':
+        batch_id = request.form['batch_id']
+        log_date = datetime.strptime(request.form['log_date'], '%Y-%m-%d').date()
+        feed_type = request.form['feed_type']
+        quantity_kg = float(request.form['quantity_kg'])
+        cost = float(request.form['cost'])
+        notes = request.form['notes']
+
+        feed_entry = FeedLog(
+            batch_id=batch_id,
+            log_date=log_date,
+            feed_type=feed_type,
+            quantity_kg=quantity_kg,
+            cost=cost,
+            notes=notes
+        )
+        db.session.add(feed_entry)
+        db.session.commit()
+        return redirect(url_for('manage_feed_resources'))
+
+    logs = FeedLog.query.order_by(FeedLog.log_date.desc()).all()
+    return render_template('admin_manage_feed.html', user=user, logs=logs, batches=batches)
+
+
+@app.route('/admin/record-sales', methods=['GET', 'POST'])
+def record_sales():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user = User.query.get(session['user_id'])
+    if not user or user.role != 'admin':
+        return redirect(url_for('login'))
+
+    customers = User.query.filter_by(role='customer').all()
+    products = Product.query.all()
+
+    if request.method == 'POST':
+        customer_id = request.form['customer_id']
+        product_id = request.form['product_id']
+        quantity = int(request.form['quantity'])
+        sale_date = datetime.strptime(request.form['sale_date'], '%Y-%m-%d').date()
+        product = Product.query.get(product_id)
+        total_amount = product.unit_price * quantity
+        notes = request.form['notes']
+
+        new_sale = Sale(
+            customer_id=customer_id,
+            product_id=product_id,
+            quantity=quantity,
+            total_amount=total_amount,
+            sale_date=sale_date,
+            notes=notes
+        )
+        db.session.add(new_sale)
+        db.session.commit()
+        return redirect(url_for('record_sales'))
+
+    sales = Sale.query.order_by(Sale.sale_date.desc()).all()
+    return render_template('admin_record_sales.html', user=user, sales=sales, customers=customers, products=products)
+
+
+@app.route('/admin/invoices', methods=['GET', 'POST'])
+def manage_invoices():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user = User.query.get(session['user_id'])
+    if not user or user.role != 'admin':
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        invoice_id = request.form['invoice_id']
+        new_status = request.form['status']
+        invoice = Invoice.query.get(invoice_id)
+        if invoice:
+            invoice.status = new_status
+            db.session.commit()
+        return redirect(url_for('manage_invoices'))
+
+    invoices = Invoice.query.order_by(Invoice.issue_date.desc()).all()
+    return render_template('admin_manage_invoices.html', user=user, invoices=invoices)
+
+
+
+@app.route('/admin/receipts', methods=['GET', 'POST'])
+def generate_receipts():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user = User.query.get(session['user_id'])
+    if not user or user.role != 'admin':
+        return redirect(url_for('login'))
+
+    sales = Sale.query.all()
+
+    if request.method == 'POST':
+        sale_id = int(request.form['sale_id'])
+        sale = Sale.query.get(sale_id)
+
+        # Create PDF in memory
+        buffer = io.BytesIO()
+        p = canvas.Canvas(buffer, pagesize=letter)
+        p.setFont("Helvetica", 12)
+
+        p.drawString(50, 750, f"Receipt for Sale #{sale.id}")
+        p.drawString(50, 730, f"Customer: {sale.customer.name}")
+        p.drawString(50, 710, f"Product: {sale.product.name}")
+        p.drawString(50, 690, f"Quantity: {sale.quantity}")
+        p.drawString(50, 670, f"Total: BDT {sale.total_amount}")
+        p.drawString(50, 650, f"Sale Date: {sale.sale_date}")
+
+        p.showPage()
+        p.save()
+        buffer.seek(0)
+
+        return make_response(buffer.getvalue(), {
+            "Content-Type": "application/pdf",
+            "Content-Disposition": f"attachment; filename=receipt_{sale.id}.pdf"
+        })
+
+    return render_template('admin_generate_receipts.html', user=user, sales=sales)
 
 # Edit User Role (GET + POST)
 @app.route('/edit-user-role', methods=['GET', 'POST'])
@@ -296,6 +472,75 @@ def generate_invoice(order_id):
     # Logic to generate the invoice
     # For now, we'll just display the order ID
     return f"Generating invoice for order with ID: {order_id}"
+
+@app.route('/admin/vaccinations', methods=['GET', 'POST'])
+def manage_vaccinations():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user = User.query.get(session['user_id'])
+    if not user or user.role != 'admin':
+        return redirect(url_for('login'))
+
+    batches = Batch.query.all()
+
+    if request.method == 'POST':
+        batch_id = request.form['batch_id']
+        vaccine_name = request.form['vaccine_name']
+        scheduled_date = datetime.strptime(request.form['scheduled_date'], '%Y-%m-%d').date()
+        status = request.form['status']
+        notes = request.form['notes']
+
+        new_vaccine = Vaccination(
+            batch_id=batch_id,
+            vaccine_name=vaccine_name,
+            scheduled_date=scheduled_date,
+            status=status,
+            notes=notes
+        )
+        db.session.add(new_vaccine)
+        db.session.commit()
+        return redirect(url_for('manage_vaccinations'))
+
+    vaccinations = Vaccination.query.order_by(Vaccination.scheduled_date.desc()).all()
+
+    return render_template('admin_manage_vaccinations.html', user=user, vaccinations=vaccinations, batches=batches)
+
+
+
+@app.route('/admin/production', methods=['GET', 'POST'])
+def manage_production():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user = User.query.get(session['user_id'])
+    if not user or user.role != 'admin':
+        return redirect(url_for('login'))
+
+    batches = Batch.query.all()
+
+    if request.method == 'POST':
+        batch_id = request.form['batch_id']
+        production_date = datetime.strptime(request.form['production_date'], '%Y-%m-%d').date()
+        egg_count = int(request.form['egg_count'])
+        meat_weight_kg = float(request.form['meat_weight_kg'])
+        notes = request.form['notes']
+
+        new_entry = Production(
+            batch_id=batch_id,
+            production_date=production_date,
+            egg_count=egg_count,
+            meat_weight_kg=meat_weight_kg,
+            notes=notes
+        )
+        db.session.add(new_entry)
+        db.session.commit()
+        return redirect(url_for('manage_production'))
+
+    records = Production.query.order_by(Production.production_date.desc()).all()
+    return render_template('admin_manage_production.html', user=user, records=records, batches=batches)
+
+
 
 @app.route('/customer-dashboard')
 def customer_dashboard():

@@ -18,11 +18,23 @@
         <a href="{{ url_for('delete_users') }}" class="block text-gray-700 hover:text-blue-500">Delete Users</a>
         <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-blue-500">Profile Management</a>
         <a href="{{ url_for('add_product') }}" class="block text-gray-700 hover:text-blue-500">Add Product</a>
-        <a href="#" class="block text-gray-700 hover:text-blue-500">Poultry Stock</a>
-        <a href="#" class="block text-gray-700 hover:text-blue-500">Vaccination Schedule</a>
-        <a href="#" class="block text-gray-700 hover:text-blue-500">Production Records</a>
-        <a href="#" class="block text-gray-700 hover:text-blue-500">Feed & Resources</a>
-        <a href="#" class="block text-gray-700 hover:text-blue-500">Financials</a>
+        <a href="{{ url_for('manage_batches') }}" class="block text-gray-700 hover:text-blue-500">Manage Batches</a>
+        <a href="{{ url_for('manage_vaccinations') }}" class="block text-gray-700 hover:text-blue-500">Vaccination Schedule</a>
+        <a href="{{ url_for('manage_production') }}" class="block text-gray-700 hover:text-blue-500">Log Egg & Meat Production</a>
+        <a href="{{ url_for('manage_feed_resources') }}" class="block text-gray-700 hover:text-blue-500"> Feed & Resource Management</a>
+        
+        <a href="{{ url_for('record_sales') }}" class="block text-gray-700 hover:text-blue-500">
+          Record Sales
+        </a>
+        <a href="{{ url_for('manage_invoices') }}" class="block text-gray-700 hover:text-blue-500">
+          Manage Invoices
+        </a>
+        <a href="{{ url_for('generate_receipts') }}" class="block text-gray-700 hover:text-blue-500">
+          Generate Receipts
+        </a>
+        
+        
+        
         <a href="#" class="block text-gray-700 hover:text-blue-500">Notifications</a>
       </nav>
 
@@ -51,23 +63,29 @@
 
       <!-- Project Tasks Section -->
       <section class="bg-white p-6 rounded-lg shadow mb-6">
-        <h3 class="text-xl font-bold text-gray-800 mb-4">Project & Task Management</h3>
-        <ul class="list-disc pl-6 space-y-2 text-gray-700">
-          <li>Manage Poultry Batches</li>
-          <li>Vaccination Schedules</li>
-          <li>Track Egg & Meat Production</li>
-          <li>Log Feed Consumption and Costs</li>
-        </ul>
+        <div class="mb-4">
+          <a href="{{ url_for('manage_vaccinations') }}" class="inline-block bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+          Manage Vaccination Schedule
+          </a>
+          <a href="{{ url_for('manage_production') }}" class="inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+            Log Egg & Meat Production
+          </a>
+          <a href="{{ url_for('manage_feed_resources') }}" class="inline-block bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
+            Manage Feed & Resource Logs
+          </a>
+        </div>
       </section>
 
       <!-- Financial Management Section -->
       <section class="bg-white p-6 rounded-lg shadow mb-6">
         <h3 class="text-xl font-bold text-gray-800 mb-4">Financial Sales Management</h3>
         <ul class="list-disc pl-6 space-y-2 text-gray-700">
-          <li>Record Sales and Payments</li>
-          <li>Manage Invoices</li>
-          <li>Generate & Send PDF Receipts</li>
-          <li>Customer Purchase History</li>
+          <div class="mb-4">
+            <a href="{{ url_for('record_sales') }}" class="inline-block bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+              Record New Sale
+            </a>
+          </div>
+          
         </ul>
       </section>
 

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Record Sales - Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+
+    <div class="max-w-6xl mx-auto bg-white p-6 rounded shadow">
+        <h1 class="text-2xl font-bold mb-6">Record a New Sale</h1>
+
+        <!-- Sale Record Form -->
+        <form method="POST" action="/admin/record-sales" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Customer</label>
+                <select name="customer_id" required class="w-full p-2 border rounded">
+                    {% for customer in customers %}
+                        <option value="{{ customer.id }}">{{ customer.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Product</label>
+                <select name="product_id" required class="w-full p-2 border rounded">
+                    {% for product in products %}
+                        <option value="{{ product.id }}">{{ product.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Quantity</label>
+                <input type="number" name="quantity" min="1" required class="w-full p-2 border rounded">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Sale Date</label>
+                <input type="date" name="sale_date" required class="w-full p-2 border rounded">
+            </div>
+
+            <div class="col-span-full">
+                <label class="block text-sm font-medium text-gray-700">Notes</label>
+                <textarea name="notes" class="w-full p-2 border rounded" placeholder="Optional notes..."></textarea>
+            </div>
+
+            <div class="col-span-full">
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    ➕ Record Sale
+                </button>
+            </div>
+        </form>
+
+        <!-- Sales History Table -->
+        <h2 class="text-xl font-semibold mb-4">Sales History</h2>
+        <table class="min-w-full bg-white border rounded shadow overflow-hidden">
+            <thead class="bg-gray-200 text-gray-700">
+                <tr>
+                    <th class="p-3 border">ID</th>
+                    <th class="p-3 border">Customer</th>
+                    <th class="p-3 border">Product</th>
+                    <th class="p-3 border">Quantity</th>
+                    <th class="p-3 border">Total (BDT)</th>
+                    <th class="p-3 border">Date</th>
+                    <th class="p-3 border">Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sale in sales %}
+                <tr class="border-t">
+                    <td class="p-3 border">{{ sale.id }}</td>
+                    <td class="p-3 border">{{ sale.customer.name }}</td>
+                    <td class="p-3 border">{{ sale.product.name }}</td>
+                    <td class="p-3 border">{{ sale.quantity }}</td>
+                    <td class="p-3 border">{{ sale.total_amount }}</td>
+                    <td class="p-3 border">{{ sale.sale_date }}</td>
+                    <td class="p-3 border">{{ sale.notes or '' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="p-4 text-center text-gray-500">No sales recorded yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</body>
+</html>

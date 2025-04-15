@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Feed & Resource Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+
+    <div class="max-w-6xl mx-auto bg-white p-6 rounded shadow">
+        <h1 class="text-2xl font-bold mb-6">🌾 Feed & Resource Management</h1>
+
+        <!-- Feed Log Form -->
+        <form method="POST" action="/admin/feed-resources" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Select Batch</label>
+                <select name="batch_id" required class="w-full p-2 border rounded">
+                    {% for batch in batches %}
+                        <option value="{{ batch.id }}">{{ batch.batch_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Log Date</label>
+                <input type="date" name="log_date" required class="w-full p-2 border rounded">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Feed Type</label>
+                <input type="text" name="feed_type" required class="w-full p-2 border rounded" placeholder="e.g. Corn Mix">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Quantity (kg)</label>
+                <input type="number" step="0.1" name="quantity_kg" required class="w-full p-2 border rounded">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Cost (BDT)</label>
+                <input type="number" step="0.01" name="cost" required class="w-full p-2 border rounded">
+            </div>
+
+            <div class="col-span-full">
+                <label class="block text-sm font-medium text-gray-700">Notes</label>
+                <textarea name="notes" class="w-full p-2 border rounded" placeholder="Optional notes..."></textarea>
+            </div>
+
+            <div class="col-span-full">
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    ➕ Log Feed Entry
+                </button>
+            </div>
+        </form>
+
+        <!-- Feed Logs Table -->
+        <h2 class="text-xl font-semibold mb-4">📋 Feed Log Records</h2>
+        <table class="min-w-full bg-white border rounded shadow overflow-hidden">
+            <thead class="bg-gray-200 text-gray-700">
+                <tr>
+                    <th class="p-3 border">ID</th>
+                    <th class="p-3 border">Batch</th>
+                    <th class="p-3 border">Date</th>
+                    <th class="p-3 border">Feed Type</th>
+                    <th class="p-3 border">Qty (kg)</th>
+                    <th class="p-3 border">Cost</th>
+                    <th class="p-3 border">Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in logs %}
+                <tr class="border-t">
+                    <td class="p-3 border">{{ entry.id }}</td>
+                    <td class="p-3 border">{{ entry.batch.batch_name }}</td>
+                    <td class="p-3 border">{{ entry.log_date }}</td>
+                    <td class="p-3 border">{{ entry.feed_type }}</td>
+                    <td class="p-3 border">{{ entry.quantity_kg }}</td>
+                    <td class="p-3 border">{{ entry.cost }}</td>
+                    <td class="p-3 border">{{ entry.notes or '' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="p-4 text-center text-gray-500">No feed logs found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</body>
+</html>
