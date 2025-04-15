@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Farmer Profile - HashMurgi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="flex h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white shadow-md px-4 py-6">
+      <h1 class="text-2xl font-bold text-green-600 mb-6">HashMurgi</h1>
+      <div class="mb-6">
+        <p class="text-sm text-gray-600">Welcome,</p>
+        <p class="font-semibold">{{ user.name }}</p>
+        <p class="text-xs text-gray-500 mt-1">Role: Farmer</p>
+      </div>
+      <nav class="space-y-4">
+        <a href="/profile-management" class="block text-green-600 font-semibold">Profile Management</a>
+        <a href="/farmer-dashboard" class="block text-gray-700 hover:text-green-500">Dashboard</a>
+        <a href="/update-profile" class="block text-gray-700 hover:text-green-500">Update Profile</a>
+        <a href="/change-password" class="block text-gray-700 hover:text-green-500">Change Password</a>
+        <a href="/logout" class="block text-gray-700 hover:text-red-500">Logout</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-8 overflow-y-auto">
+      <header class="mb-6">
+        <h2 class="text-3xl font-semibold text-gray-800">Profile</h2>
+        <p class="text-gray-500">Manage your profile settings and information</p>
+      </header>
+
+      <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <a href="/update-profile" class="bg-blue-500 text-white p-6 rounded-lg shadow hover:bg-blue-600 transition">
+          <h3 class="text-xl font-bold mb-2">Update Profile</h3>
+          <p class="text-sm">Edit your name, phone, and address.</p>
+        </a>
+
+        <a href="/change-password" class="bg-green-500 text-white p-6 rounded-lg shadow hover:bg-green-600 transition">
+          <h3 class="text-xl font-bold mb-2">Change Password</h3>
+          <p class="text-sm">Ensure your account remains secure.</p>
+        </a>
+
+        <a href="/logout" class="bg-red-500 text-white p-6 rounded-lg shadow hover:bg-red-600 transition">
+          <h3 class="text-xl font-bold mb-2">Logout</h3>
+          <p class="text-sm">End your session securely.</p>
+        </a>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

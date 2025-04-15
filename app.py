@@ -129,23 +129,24 @@ def delete_users():
 
 @app.route('/profile-management')
 def profile_management():
-    user_id = session.get('user_id')  # Get the logged-in user email
-    user = User.query.get(user_id)  # Get the user data from the users table
-    
-    if not user:
-        return redirect(url_for('login'))  # Redirect to login if user not found
-    
-    if user.role == 'admin':
-        return render_template('profile_management.html', user=user)  # Admin's profile management page
-    elif user.role == 'customer':
-        return render_template('profile_customer.html', user=user)  # Customer's profile management page
-    elif user.role == 'delivery_man':  # Changed from 'employee' to 'delivery_man'
-        return render_template('profile_delivery_man.html', user=user)  # Delivery man's profile management page
-    elif user.role == 'manager':
-        return render_template('profile_manager.html', user=user)  # Manager's profile management page
-    else:
-        return redirect(url_for('home'))  # Redirect to home page for other roles
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
 
+    if not user:
+        return redirect(url_for('login'))
+
+    if user.role == 'admin':
+        return render_template('profile_management.html', user=user)
+    elif user.role == 'manager':
+        return render_template('profile_manager.html', user=user)
+    elif user.role == 'customer':
+        return render_template('profile_customer.html', user=user)
+    elif user.role == 'delivery_man':
+        return render_template('profile_delivery_man.html', user=user)
+    elif user.role == 'farmer':
+        return render_template('profile_farmer.html', user=user)  # ✅ Add this line
+    else:
+        return redirect(url_for('home'))
 
 
 
@@ -813,5 +814,25 @@ def track_customer_orders():
     # In a real application, you would fetch the user's orders from the database
     # For now, we'll just render the template with dummy data
     return render_template('track_orders.html', user=user)
+
+@app.route('/farmer-dashboard')
+def farmer_dashboard():
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+
+    if not user or user.role != 'farmer':
+        return redirect(url_for('login'))
+
+    return render_template('farmer_dashboard.html', user=user)
+
+
+
+
+
+
+
+
+
+
 if __name__ == '__main__':
     app.run(debug=True)
