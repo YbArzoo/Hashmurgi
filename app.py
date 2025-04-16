@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, redirect, url_for
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -12,17 +12,33 @@ from flask import make_response
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import io
-
-
+from flask_migrate import Migrate
 
 
 
 
 
 app = Flask(__name__)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'  # This sets the SQLite database file
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # Optional: disables a feature that's not necessary
+
+migrate = Migrate(app, db)
 app.secret_key = os.urandom(24)
 app.config.from_object(Config)
 db.init_app(app)
+
+
+UPLOAD_FOLDER = 'static/images'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Function to check allowed file extensions
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
 
 # Create tables once when app starts
 with app.app_context():
@@ -37,6 +53,7 @@ def home():
     user_id = session.get('user_id')
     user = User.query.get(user_id) if user_id else None
     return render_template('index.html', user=user)
+
 
 
 # Admin panel route
@@ -306,7 +323,8 @@ def delete_users():
 @app.route('/profile-management')
 def profile_management():
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+
 
     if not user:
         return redirect(url_for('login'))
@@ -331,7 +349,8 @@ def profile_management():
 @app.route('/update-profile', methods=['GET', 'POST'])
 def update_profile():
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+
 
     if not user:
         return redirect(url_for('login'))
@@ -366,7 +385,8 @@ def update_profile():
 def manage_users():
     
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+
     
     if user.role != 'admin':
         return redirect(url_for('home'))
@@ -395,7 +415,8 @@ def select_user():
 @app.route('/manager-dashboard')
 def manager_dashboard():
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+
 
     if user and user.role == 'manager':  # Use dot notation
         return render_template('manager-dashboard.html', user=user)
@@ -409,11 +430,16 @@ def add_product():
     if not user_id:
         return redirect(url_for('login'))
 
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+    
     if not user:
         return redirect(url_for('login'))
 
     success = None
+    error = None
+
+    # Fetch all existing products for display in the template
+    products = Product.query.all()
 
     if request.method == 'POST':
         name = request.form.get('name')
@@ -422,13 +448,22 @@ def add_product():
         unit_price = request.form.get('unit_price')
         product_description = request.form.get('product_description')
 
+        # Handle image upload
+        image = request.files.get('image')
+        image_filename = None
+        if image and allowed_file(image.filename):
+            image_filename = secure_filename(image.filename)
+            image.save(os.path.join(app.config['UPLOAD_FOLDER'], image_filename))  # Save image to static/images
+
         try:
+            # Add new product to DB
             new_product = Product(
                 name=name,
                 category=category,
                 quantity=int(quantity),
                 unit_price=float(unit_price),
                 product_description=product_description,
+                image=image_filename,  # Save filename in DB
                 added_by=user.id
             )
             db.session.add(new_product)
@@ -438,7 +473,34 @@ def add_product():
             db.session.rollback()
             success = f"Error: {str(e)}"
 
-    return render_template('add-product.html', user=user, success=success)
+    # Render the page with success, error, and products
+    return render_template('add-product.html', user=user, success=success, error=error, products=products)
+
+
+
+@app.route('/delete-product/<int:product_id>', methods=['POST'])
+def delete_product(product_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return redirect(url_for('login'))
+
+    user = db.session.get(User, user_id)
+    
+    if user.role not in ['admin', 'manager']:
+        return redirect(url_for('login'))
+
+    product = Product.query.get(product_id)
+    if product:
+        try:
+            db.session.delete(product)
+            db.session.commit()
+            return redirect(url_for('add_product', success="Product deleted successfully"))
+        except Exception as e:
+            db.session.rollback()
+            return redirect(url_for('add_product', error=f"Error: {str(e)}"))
+    else:
+        return redirect(url_for('add_product', error="Product not found"))
+
 
 
 @app.route('/orders')
@@ -448,7 +510,8 @@ def orders():
     if not user_id:
         return redirect(url_for('login'))
     
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+
     if not user:
         return redirect(url_for('login'))
 
@@ -545,7 +608,8 @@ def manage_production():
 @app.route('/customer-dashboard')
 def customer_dashboard():
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+
     
     if not user or user.role != 'customer':  # Make sure the user is a customer
         return redirect(url_for('home'))  # Redirect if not a customer
@@ -556,7 +620,7 @@ def customer_dashboard():
 @app.route('/delivery-dashboard')
 def delivery_dashboard():
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
 
     if not user or user.role != 'delivery_man':
         return redirect(url_for('login'))
@@ -578,7 +642,8 @@ def delivery_dashboard():
 @app.route('/assigned-orders')
 def assigned_orders():
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+
     
     if not user or user.role != 'delivery_man':
         return redirect(url_for('login'))
@@ -603,7 +668,8 @@ def assigned_orders():
 @app.route('/update-order-status/<int:order_id>', methods=['GET', 'POST'])
 def update_order_status(order_id):
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+
     
     if not user or user.role != 'delivery_man':
         return redirect(url_for('login'))
@@ -626,7 +692,8 @@ def update_order_status(order_id):
 @app.route('/delivery-map')
 def delivery_map():
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+
     
     if not user or user.role != 'delivery_man':
         return redirect(url_for('login'))
@@ -657,7 +724,8 @@ def delivery_map():
 @app.route('/report-issues')
 def report_issues():
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+
     
     if not user or user.role != 'delivery_man':
         return redirect(url_for('login'))
@@ -686,7 +754,8 @@ def report_issues():
 @app.route('/submit-issue', methods=['POST'])
 def submit_issue():
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+
     
     if not user or user.role != 'delivery_man':
         return redirect(url_for('login'))
@@ -722,7 +791,8 @@ def submit_issue():
 @app.route('/delivery-income')
 def delivery_income():
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+
     
     if not user or user.role != 'delivery_man':
         return redirect(url_for('login'))
@@ -786,7 +856,8 @@ def delivery_income():
 @app.route('/view-report/<int:report_id>')
 def view_report(report_id):
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+
     
     if not user or user.role != 'delivery_man':
         return redirect(url_for('login'))
@@ -807,7 +878,8 @@ def update_location():
         return jsonify({"error": "Request must be JSON"}), 400
         
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+
     
     if not user or user.role != 'delivery_man':
         return jsonify({"error": "Unauthorized"}), 401
@@ -830,7 +902,8 @@ def update_location():
 @app.route('/view-order-details/<int:order_id>')
 def view_order_details(order_id):
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+
     
     if not user or user.role != 'delivery_man':
         return redirect(url_for('login'))
@@ -867,7 +940,8 @@ def login():
             elif user.role == 'farmer':
                 return redirect(url_for('farmer_dashboard'))
             elif user.role == 'customer':
-                return redirect(url_for('customer_dashboard'))
+                return redirect(url_for('home'))  # send to homepage after login
+
         else:
             error = "Invalid email or password"
     return render_template('login.html', error=error)
@@ -953,7 +1027,8 @@ def forgot_password():
 @app.route('/daily-tasks', methods=['GET', 'POST'])
 def daily_tasks():
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+
     
     if not user or user.role != 'farmer':
         return redirect(url_for('login'))
@@ -974,7 +1049,8 @@ def daily_tasks():
 @app.route('/poultry-status-farmer', methods=['GET', 'POST'])
 def poultry_status_farmer():
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+
     
     if not user or user.role != 'farmer':
         return redirect(url_for('login'))
@@ -1000,7 +1076,8 @@ def poultry_status_farmer():
 @app.route('/feed-schedule', methods=['GET', 'POST'])
 def feed_schedule():
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+
     
     if not user or user.role != 'farmer':
         return redirect(url_for('login'))
@@ -1023,7 +1100,8 @@ def change_password():
     if not user_id:
         return redirect(url_for('login'))
 
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+
     if not user:
         return redirect(url_for('login'))
 
@@ -1049,7 +1127,8 @@ def change_password():
 @app.route('/notifications')
 def notifications():
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+
     
     if not user or user.role != 'manager':
         return redirect(url_for('login'))
@@ -1059,7 +1138,8 @@ def notifications():
 @app.route('/feed-resources')
 def feed_resources():
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+
     
     if not user or user.role != 'manager':
         return redirect(url_for('login'))
@@ -1069,7 +1149,8 @@ def feed_resources():
 @app.route('/production-record')
 def production_record():
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+
     
     if not user or user.role != 'manager':
         return redirect(url_for('login'))
@@ -1082,7 +1163,8 @@ def production_record():
 @app.route('/vaccination-schedule')
 def vaccination_schedule():
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+
     
     if not user or user.role != 'manager':
         return redirect(url_for('login'))
@@ -1095,7 +1177,8 @@ def vaccination_schedule():
 @app.route('/poultry-stock')
 def poultry_stock():
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+
     
     if not user or user.role != 'manager':
         return redirect(url_for('login'))
@@ -1104,19 +1187,18 @@ def poultry_stock():
 @app.route('/shop')
 def shop():
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
-    
-    if not user or user.role != 'customer':
-        return redirect(url_for('login'))
-    
-    # In a real application, you would fetch products from the database
-    # For now, we'll just render the template
-    return render_template('shop.html', user=user)
+    user = db.session.get(User, user_id) if user_id else None
+
+    products = Product.query.order_by(Product.name.asc()).all()  # fetch all products
+    return render_template('shop.html', user=user, products=products)
+
+
 
 @app.route('/track-orders')
 def track_customer_orders():
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+
     
     if not user or user.role != 'customer':
         return redirect(url_for('login'))
@@ -1128,7 +1210,8 @@ def track_customer_orders():
 @app.route('/farmer-dashboard')
 def farmer_dashboard():
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
+
 
     if not user or user.role != 'farmer':
         return redirect(url_for('login'))

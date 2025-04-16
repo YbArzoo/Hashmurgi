@@ -18,11 +18,16 @@ class User(db.Model):
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    category = db.Column(db.String(50))
-    quantity = db.Column(db.Integer)
-    unit_price = db.Column(db.Float)
-    product_description = db.Column(db.Text)
-    added_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    category = db.Column(db.String(100), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    unit_price = db.Column(db.Float, nullable=False)
+    product_description = db.Column(db.String(200), nullable=True)
+    image = db.Column(db.String(100), nullable=True)  # Add this line for the image
+    added_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    def __repr__(self):
+        return f'<Product {self.name}>'
+
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('user.id'))

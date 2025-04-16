@@ -9,6 +9,7 @@
 <body class="bg-gray-100 min-h-screen">
   <div class="flex h-screen">
     <!-- Sidebar -->
+    {% if user and user.role == 'customer' %}
     <aside class="w-64 bg-white shadow-md px-4 py-6 flex flex-col h-full">
       <h1 class="text-2xl font-bold text-green-600 mb-6">Customer Panel</h1>
       <nav class="space-y-4 flex-1">
@@ -25,6 +26,7 @@
         </a>
       </div>
     </aside>
+    {% endif %}
 
     <!-- Main Content -->
     <main class="flex-1 p-6 overflow-y-auto">
@@ -59,95 +61,28 @@
 
       <!-- Products Grid -->
       <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <!-- Product Card 1 -->
+        {% for product in products %}
         <div class="bg-white rounded-lg shadow overflow-hidden">
           <div class="h-48 bg-gray-200 flex items-center justify-center">
-            <img src="/static/images/eggs.jpg" alt="Farm Fresh Eggs" class="h-full w-full object-cover" onerror="this.src='/static/images/placeholder.jpg'">
+            <img src="{{ url_for('static', filename='images/' + (product.image or 'placeholder.jpg')) }}"
+              alt="{{ product.name }}" class="h-full w-full object-cover"
+              onerror="this.src='/static/images/placeholder.jpg'">
+       
           </div>
           <div class="p-4">
-            <h3 class="text-lg font-semibold text-gray-800">Farm Fresh Eggs</h3>
-            <p class="text-gray-600 text-sm mb-2">Premium quality eggs from free-range chickens</p>
+            <h3 class="text-lg font-semibold text-gray-800">{{ product.name }}</h3>
+            <p class="text-gray-600 text-sm mb-2">{{ product.product_description }}</p>
             <div class="flex justify-between items-center mt-4">
-              <span class="text-green-600 font-bold">৳120 / dozen</span>
-              <button class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">Add to Cart</button>
-            </div>
-          </div>
-        </div>
+              <span class="text-green-600 font-bold">৳{{ product.unit_price }}</span>
+              <button class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
+                      onclick="addToCart({{ product.id }})">
+                      Add to Cart
+              </button>
 
-        <!-- Product Card 2 -->
-        <div class="bg-white rounded-lg shadow overflow-hidden">
-          <div class="h-48 bg-gray-200 flex items-center justify-center">
-            <img src="/static/images/chicken.jpg" alt="Broiler Chicken" class="h-full w-full object-cover" onerror="this.src='/static/images/placeholder.jpg'">
-          </div>
-          <div class="p-4">
-            <h3 class="text-lg font-semibold text-gray-800">Broiler Chicken</h3>
-            <p class="text-gray-600 text-sm mb-2">Fresh, hormone-free broiler chicken</p>
-            <div class="flex justify-between items-center mt-4">
-              <span class="text-green-600 font-bold">৳180 / kg</span>
-              <button class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">Add to Cart</button>
             </div>
           </div>
         </div>
-
-        <!-- Product Card 3 -->
-        <div class="bg-white rounded-lg shadow overflow-hidden">
-          <div class="h-48 bg-gray-200 flex items-center justify-center">
-            <img src="/static/images/feed.jpg" alt="Premium Chicken Feed" class="h-full w-full object-cover" onerror="this.src='/static/images/placeholder.jpg'">
-          </div>
-          <div class="p-4">
-            <h3 class="text-lg font-semibold text-gray-800">Premium Chicken Feed</h3>
-            <p class="text-gray-600 text-sm mb-2">High-quality feed for optimal growth</p>
-            <div class="flex justify-between items-center mt-4">
-              <span class="text-green-600 font-bold">৳950 / 25kg</span>
-              <button class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">Add to Cart</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Product Card 4 -->
-        <div class="bg-white rounded-lg shadow overflow-hidden">
-          <div class="h-48 bg-gray-200 flex items-center justify-center">
-            <img src="/static/images/deshi-chicken.jpg" alt="Deshi Chicken" class="h-full w-full object-cover" onerror="this.src='/static/images/placeholder.jpg'">
-          </div>
-          <div class="p-4">
-            <h3 class="text-lg font-semibold text-gray-800">Deshi Chicken</h3>
-            <p class="text-gray-600 text-sm mb-2">Organic, free-range local chicken</p>
-            <div class="flex justify-between items-center mt-4">
-              <span class="text-green-600 font-bold">৳350 / kg</span>
-              <button class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">Add to Cart</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Product Card 5 -->
-        <div class="bg-white rounded-lg shadow overflow-hidden">
-          <div class="h-48 bg-gray-200 flex items-center justify-center">
-            <img src="/static/images/duck.jpg" alt="Duck Eggs" class="h-full w-full object-cover" onerror="this.src='/static/images/placeholder.jpg'">
-          </div>
-          <div class="p-4">
-            <h3 class="text-lg font-semibold text-gray-800">Duck Eggs</h3>
-            <p class="text-gray-600 text-sm mb-2">Fresh duck eggs from our farm</p>
-            <div class="flex justify-between items-center mt-4">
-              <span class="text-green-600 font-bold">৳150 / dozen</span>
-              <button class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">Add to Cart</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Product Card 6 -->
-        <div class="bg-white rounded-lg shadow overflow-hidden">
-          <div class="h-48 bg-gray-200 flex items-center justify-center">
-            <img src="/static/images/chicks.jpg" alt="Day-Old Chicks" class="h-full w-full object-cover" onerror="this.src='/static/images/placeholder.jpg'">
-          </div>
-          <div class="p-4">
-            <h3 class="text-lg font-semibold text-gray-800">Day-Old Chicks</h3>
-            <p class="text-gray-600 text-sm mb-2">Healthy chicks for your poultry farm</p>
-            <div class="flex justify-between items-center mt-4">
-              <span class="text-green-600 font-bold">৳45 / chick</span>
-              <button class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">Add to Cart</button>
-            </div>
-          </div>
-        </div>
+        {% endfor %}
       </section>
 
       <!-- Pagination -->
@@ -170,6 +105,34 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
       </svg>
     </button>
+
+
   </div>
+
+  <script>
+    function addToCart(productId) {
+      {% if user and user.role == 'customer' %}
+        // If the user is logged in and is a customer, add to cart
+        fetch('/add-to-cart/' + productId, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+        })
+        .then(response => response.json())
+        .then(data => {
+          alert('Product added to cart');
+        })
+        .catch(error => {
+          alert('Error adding product to cart');
+        });
+      {% else %}
+        // If the user is not logged in, ask them to log in
+        alert('Please login or register to add items to your cart.');
+        window.location.href = "{{ url_for('login') }}";  // Redirect to the login page
+      {% endif %}
+    }
+  </script>
+  
 </body>
 </html>
