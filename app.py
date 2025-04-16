@@ -1135,9 +1135,61 @@ def farmer_dashboard():
 
     return render_template('farmer_dashboard.html', user=user)
 
+#puspita just add this
+@app.route('/admin/manage-orders', methods=['GET', 'POST'])
+def manage_orders():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user = User.query.get(session['user_id'])
+    if not user or user.role not in ['admin', 'manager']:
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        order_id = int(request.form['order_id'])
+        new_status = request.form.get('status')
+        delivery_man_id = request.form.get('delivery_man_id')
+
+        order = Order.query.get(order_id)
+        if order:
+            if new_status:
+                order.status = new_status
+            if delivery_man_id:
+                order.delivery_man_id = int(delivery_man_id)
+            db.session.commit()
+        return redirect(url_for('manage_orders'))
+
+    orders = Order.query.order_by(Order.order_date.desc()).all()
+    delivery_men = User.query.filter_by(role='delivery_man').all()
+
+    return render_template('admin_manager_orders.html', user=user, orders=orders, delivery_men=delivery_men)
 
 
 
+@app.route('/delivery/assigned-orders', methods=['GET', 'POST'])
+def delivery_assigned_orders():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user = User.query.get(session['user_id'])
+    if not user or user.role != 'delivery_man':
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        order_id = int(request.form['order_id'])
+        new_status = request.form['status']
+        order = Order.query.get(order_id)
+
+        # Only allow updates if the order is assigned to this delivery man
+        if order and order.delivery_man_id == user.id:
+            order.status = new_status
+            db.session.commit()
+
+        return redirect(url_for('assigned_orders'))
+
+    # Fetch only orders assigned to the logged-in delivery man
+    assigned = Order.query.filter_by(delivery_man_id=user.id).order_by(Order.order_date.desc()).all()
+    return render_template('assigned_orders.html', user=user, orders=assigned)
 
 
 

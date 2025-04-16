@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Orders - Admin/Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+
+  <div class="max-w-7xl mx-auto bg-white p-6 rounded shadow">
+    <h1 class="text-2xl font-bold mb-6">📦 Order Management</h1>
+
+    <table class="min-w-full bg-white border rounded shadow overflow-hidden">
+      <thead class="bg-gray-200 text-gray-700">
+        <tr>
+          <th class="p-3 border">Order ID</th>
+          <th class="p-3 border">Customer</th>
+          <th class="p-3 border">Products</th>
+          <th class="p-3 border">Amount (BDT)</th>
+          <th class="p-3 border">Status</th>
+          <th class="p-3 border">Delivery Man</th>
+          <th class="p-3 border">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for order in orders %}
+        <tr class="border-t">
+          <td class="p-3 border">{{ order.id }}</td>
+          <td class="p-3 border">{{ order.customer_name }}</td>
+          <td class="p-3 border">
+            <ul class="list-disc pl-4">
+              {% for item in order.items %}
+              <li>{{ item.product.name }} (x{{ item.quantity }})</li>
+              {% endfor %}
+            </ul>
+          </td>
+          <td class="p-3 border">{{ order.total_amount }}</td>
+          <td class="p-3 border font-semibold text-sm">
+            <span class="{% if order.status == 'Pending' %}text-yellow-600{% elif order.status == 'In Transit' %}text-blue-600{% elif order.status == 'Delivered' %}text-green-600{% endif %}">
+              {{ order.status }}
+            </span>
+          </td>
+          <td class="p-3 border">
+            {{ order.delivery_man.name if order.delivery_man else "Not Assigned" }}
+          </td>
+          <td class="p-3 border">
+            <form method="POST" class="space-y-2">
+              <input type="hidden" name="order_id" value="{{ order.id }}">
+
+              <!-- Assign Delivery Man -->
+              <select name="delivery_man_id" class="border p-1 rounded w-full text-sm">
+                <option value="">-- Assign Delivery Man --</option>
+                {% for man in delivery_men %}
+                  <option value="{{ man.id }}" {% if order.delivery_man_id == man.id %}selected{% endif %}>
+                    {{ man.name }}
+                  </option>
+                {% endfor %}
+              </select>
+
+              <!-- Update Status -->
+              <select name="status" class="border p-1 rounded w-full text-sm">
+                <option value="Pending" {% if order.status == 'Pending' %}selected{% endif %}>Pending</option>
+                <option value="In Transit" {% if order.status == 'In Transit' %}selected{% endif %}>In Transit</option>
+                <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
+              </select>
+
+              <button type="submit" class="bg-blue-600 text-white w-full py-1 rounded hover:bg-blue-700 text-sm">
+                Save
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="p-4 text-center text-gray-500">No orders found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</body>
+</html>
