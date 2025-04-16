@@ -17,11 +17,11 @@
         <p class="text-xs text-gray-500 mt-1">Role: Farmer</p>
       </div>
       <nav class="space-y-4">
-        <a href="/profile-management" class="block text-green-600 font-semibold">Profile Management</a>
-        <a href="/farmer-dashboard" class="block text-gray-700 hover:text-green-500">Dashboard</a>
-        <a href="/update-profile" class="block text-gray-700 hover:text-green-500">Update Profile</a>
-        <a href="/change-password" class="block text-gray-700 hover:text-green-500">Change Password</a>
-        <a href="/logout" class="block text-gray-700 hover:text-red-500">Logout</a>
+        <a href="{{ url_for('profile_management') }}" class="block text-green-600 font-semibold">Profile Management</a>
+        <a href="{{ url_for('farmer_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
+        <a href="{{ url_for('update_profile') }}" class="block text-gray-700 hover:text-green-500">Update Profile</a>
+        <a href="{{ url_for('change_password') }}" class="block text-gray-700 hover:text-green-500">Change Password</a>
+        <a href="{{ url_for('logout') }}" class="block text-gray-700 hover:text-red-500">Logout</a>
       </nav>
     </aside>
 
@@ -33,17 +33,17 @@
       </header>
 
       <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <a href="/update-profile" class="bg-blue-500 text-white p-6 rounded-lg shadow hover:bg-blue-600 transition">
+        <a href="{{ url_for('update_profile') }}" class="bg-blue-500 text-white p-6 rounded-lg shadow hover:bg-blue-600 transition">
           <h3 class="text-xl font-bold mb-2">Update Profile</h3>
           <p class="text-sm">Edit your name, phone, and address.</p>
         </a>
 
-        <a href="/change-password" class="bg-green-500 text-white p-6 rounded-lg shadow hover:bg-green-600 transition">
+        <a href="{{ url_for('change_password') }}" class="bg-green-500 text-white p-6 rounded-lg shadow hover:bg-green-600 transition">
           <h3 class="text-xl font-bold mb-2">Change Password</h3>
           <p class="text-sm">Ensure your account remains secure.</p>
         </a>
 
-        <a href="/logout" class="bg-red-500 text-white p-6 rounded-lg shadow hover:bg-red-600 transition">
+        <a href="{{ url_for('logout') }}" class="bg-red-500 text-white p-6 rounded-lg shadow hover:bg-red-600 transition">
           <h3 class="text-xl font-bold mb-2">Logout</h3>
           <p class="text-sm">End your session securely.</p>
         </a>

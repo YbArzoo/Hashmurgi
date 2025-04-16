@@ -174,3 +174,64 @@ class Invoice(db.Model):
 
     def __repr__(self):
         return f"<Invoice {self.id} - {self.status}>"
+
+
+
+class Task(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    category = db.Column(db.String(50), nullable=False)
+    due_date = db.Column(db.Date, nullable=False)
+    priority = db.Column(db.String(20), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(20), default='pending')  # pending, completed, cancelled
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    completed_at = db.Column(db.DateTime, nullable=True)
+    
+    # Relationship
+    user = db.relationship('User', backref='tasks')
+    
+    
+
+class PoultryBatch(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    batch_id = db.Column(db.String(20), nullable=False, unique=True)
+    bird_type = db.Column(db.String(20), nullable=False)  # layer, broiler, chick
+    count = db.Column(db.Integer, nullable=False)
+    arrival_date = db.Column(db.Date, nullable=False)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationship
+    user = db.relationship('User', backref='poultry_batches')
+
+class HealthCheck(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    batch_id = db.Column(db.String(20), nullable=False)
+    check_date = db.Column(db.Date, nullable=False)
+    health_status = db.Column(db.String(20), nullable=False)  # excellent, good, fair, poor, critical
+    feed_consumption = db.Column(db.String(20), nullable=False)  # normal, above, below
+    water_consumption = db.Column(db.String(20), nullable=False)  # normal, above, below
+    mortality = db.Column(db.Integer, default=0)
+    notes = db.Column(db.Text, nullable=True)
+    recorded_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationship
+    user = db.relationship('User', backref='health_checks')
+
+class Feeding(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.Date, nullable=False)
+    time = db.Column(db.Time, nullable=False)
+    batch_id = db.Column(db.String(20), nullable=False)
+    feed_type = db.Column(db.String(20), nullable=False)  # layer, broiler, chick, mixed
+    quantity = db.Column(db.Float, nullable=False)
+    status = db.Column(db.String(20), nullable=False)  # completed, pending, scheduled
+    notes = db.Column(db.Text, nullable=True)
+    recorded_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationship
+    user = db.relationship('User', backref='feedings')

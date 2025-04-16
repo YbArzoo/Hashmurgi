@@ -950,6 +950,71 @@ def forgot_password():
 
 
 
+@app.route('/daily-tasks', methods=['GET', 'POST'])
+def daily_tasks():
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+    
+    if not user or user.role != 'farmer':
+        return redirect(url_for('login'))
+    
+    # Get today's date for the form
+    from datetime import datetime
+    today_date = datetime.now().strftime('%Y-%m-%d')
+    
+    if request.method == 'POST':
+        # In a real application, you would save the task to the database
+        flash('Task added successfully!', 'success')
+        return redirect(url_for('daily_tasks'))
+    
+    # In a real application, you would fetch tasks from the database
+    return render_template('daily_tasks.html', user=user, today_date=today_date)
+
+
+@app.route('/poultry-status-farmer', methods=['GET', 'POST'])
+def poultry_status_farmer():
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+    
+    if not user or user.role != 'farmer':
+        return redirect(url_for('login'))
+    
+    # Get today's date for the form
+    from datetime import datetime
+    today_date = datetime.now().strftime('%Y-%m-%d')
+    
+    if request.method == 'POST':
+        form_type = request.form.get('form_type')
+        
+        if form_type == 'count_update':
+            # Handle count update form submission
+            flash('Poultry count updated successfully!', 'success')
+        elif form_type == 'health_check':
+            # Handle health check form submission
+            flash('Health check recorded successfully!', 'success')
+        
+        return redirect(url_for('poultry_status_farmer'))
+    
+    return render_template('poultry_status_farmer.html', user=user, today_date=today_date)
+
+@app.route('/feed-schedule', methods=['GET', 'POST'])
+def feed_schedule():
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+    
+    if not user or user.role != 'farmer':
+        return redirect(url_for('login'))
+    
+    # Get today's date for the form
+    from datetime import datetime
+    today_date = datetime.now().strftime('%Y-%m-%d')
+    
+    if request.method == 'POST':
+        # In a real application, you would save the feeding record to the database
+        flash('Feeding record added successfully!', 'success')
+        return redirect(url_for('feed_schedule'))
+    
+    return render_template('feed_schedule.html', user=user, today_date=today_date)
 
 
 @app.route('/change-password', methods=['GET', 'POST'])

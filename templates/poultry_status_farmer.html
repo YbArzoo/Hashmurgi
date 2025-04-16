@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Poultry Status - HashMurgi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="flex h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white shadow-md px-4 py-6">
+      <h1 class="text-2xl font-bold text-green-600 mb-6">Farmer Panel</h1>
+      <nav class="space-y-4">
+        <a href="{{ url_for('farmer_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
+        <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile</a>
+        <a href="{{ url_for('daily_tasks') }}" class="block text-gray-700 hover:text-green-500">Daily Tasks</a>
+        <a href="{{ url_for('poultry_status_farmer') }}" class="block text-green-600 font-semibold">Poultry Status</a>
+        <a href="{{ url_for('feed_schedule') }}" class="block text-gray-700 hover:text-green-500">Feed Schedule</a>
+        <a href="{{ url_for('logout') }}" class="block text-gray-700 hover:text-red-500">Logout</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6 overflow-y-auto">
+      <header class="mb-6">
+        <h2 class="text-3xl font-semibold text-gray-800">Poultry Status</h2>
+        <p class="text-gray-500">Monitor and update the health and status of your poultry</p>
+      </header>
+
+      <!-- Quick Actions -->
+      <section class="bg-white p-6 rounded-lg shadow mb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Quick Actions</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <a href="#update-count" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-center">Update Count</a>
+          <a href="#record-health" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 text-center">Record Health Check</a>
+          <a href="#report-issue" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 text-center">Report Issue</a>
+        </div>
+      </section>
+
+      <!-- Poultry Summary -->
+      <section class="bg-white p-6 rounded-lg shadow mb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Poultry Summary</h3>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+            <h4 class="text-lg font-semibold text-blue-700">Total Birds</h4>
+            <p class="text-3xl font-bold text-blue-800">1,250</p>
+            <p class="text-sm text-blue-600 mt-1">Across all categories</p>
+          </div>
+          <div class="bg-green-50 p-4 rounded-lg border border-green-100">
+            <h4 class="text-lg font-semibold text-green-700">Layers</h4>
+            <p class="text-3xl font-bold text-green-800">850</p>
+            <p class="text-sm text-green-600 mt-1">Egg production</p>
+          </div>
+          <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-100">
+            <h4 class="text-lg font-semibold text-yellow-700">Broilers</h4>
+            <p class="text-3xl font-bold text-yellow-800">350</p>
+            <p class="text-sm text-yellow-600 mt-1">Meat production</p>
+          </div>
+          <div class="bg-purple-50 p-4 rounded-lg border border-purple-100">
+            <h4 class="text-lg font-semibold text-purple-700">Chicks</h4>
+            <p class="text-3xl font-bold text-purple-800">50</p>
+            <p class="text-sm text-purple-600 mt-1">New additions</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Update Count Form -->
+      <section id="update-count" class="bg-white p-6 rounded-lg shadow mb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Update Poultry Count</h3>
+        <form action="{{ url_for('poultry_status_farmer') }}" method="POST" class="space-y-4">
+          <input type="hidden" name="form_type" value="count_update">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label for="bird_type" class="block text-sm font-medium text-gray-700 mb-1">Bird Type</label>
+              <select id="bird_type" name="bird_type" class="w-full p-2 border rounded">
+                <option value="layer">Layer</option>
+                <option value="broiler">Broiler</option>
+                <option value="chick">Chick</option>
+              </select>
+            </div>
+            <div>
+              <label for="batch_id" class="block text-sm font-medium text-gray-700 mb-1">Batch ID</label>
+              <select id="batch_id" name="batch_id" class="w-full p-2 border rounded">
+                <option value="A123">Batch A123</option>
+                <option value="B456">Batch B456</option>
+                <option value="C789">Batch C789</option>
+              </select>
+            </div>
+            <div>
+              <label for="count_date" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+              <input type="date" id="count_date" name="count_date" class="w-full p-2 border rounded" value="{{ today_date }}">
+            </div>
+            <div>
+              <label for="current_count" class="block text-sm font-medium text-gray-700 mb-1">Current Count</label>
+              <input type="number" id="current_count" name="current_count" class="w-full p-2 border rounded bg-gray-100" value="350" readonly>
+            </div>
+            <div>
+              <label for="new_count" class="block text-sm font-medium text-gray-700 mb-1">New Count</label>
+              <input type="number" id="new_count" name="new_count" class="w-full p-2 border rounded" required>
+            </div>
+            <div>
+              <label for="reason" class="block text-sm font-medium text-gray-700 mb-1">Reason for Change</label>
+              <select id="reason" name="reason" class="w-full p-2 border rounded">
+                <option value="mortality">Mortality</option>
+                <option value="sale">Sale</option>
+                <option value="transfer">Transfer</option>
+                <option value="addition">New Addition</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <textarea id="notes" name="notes" rows="2" class="w-full p-2 border rounded" placeholder="Enter any additional details"></textarea>
+          </div>
+          <div class="flex justify-end">
+            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Update Count</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Health Record Form -->
+      <section id="record-health" class="bg-white p-6 rounded-lg shadow mb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Record Health Check</h3>
+        <form action="{{ url_for('poultry_status_farmer') }}" method="POST" class="space-y-4">
+          <input type="hidden" name="form_type" value="health_check">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label for="health_batch_id" class="block text-sm font-medium text-gray-700 mb-1">Batch ID</label>
+              <select id="health_batch_id" name="health_batch_id" class="w-full p-2 border rounded">
+                <option value="A123">Batch A123</option>
+                <option value="B456">Batch B456</option>
+                <option value="C789">Batch C789</option>
+              </select>
+            </div>
+            <div>
+              <label for="health_date" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+              <input type="date" id="health_date" name="health_date" class="w-full p-2 border rounded" value="{{ today_date }}">
+            </div>
+            <div>
+              <label for="health_status" class="block text-sm font-medium text-gray-700 mb-1">Overall Health</label>
+              <select id="health_status" name="health_status" class="w-full p-2 border rounded">
+                <option value="excellent">Excellent</option>
+                <option value="good">Good</option>
+                <option value="fair">Fair</option>
+                <option value="poor">Poor</option>
+                <option value="critical">Critical</option>
+              </select>
+            </div>
+            <div>
+              <label for="feed_consumption" class="block text-sm font-medium text-gray-700 mb-1">Feed Consumption</label>
+              <select id="feed_consumption" name="feed_consumption" class="w-full p-2 border rounded">
+                <option value="normal">Normal</option>
+                <option value="above">Above Normal</option>
+                <option value="below">Below Normal</option>
+              </select>
+            </div>
+            <div>
+              <label for="water_consumption" class="block text-sm font-medium text-gray-700 mb-1">Water Consumption</label>
+              <select id="water_consumption" name="water_consumption" class="w-full p-2 border rounded">
+                <option value="normal">Normal</option>
+                <option value="above">Above Normal</option>
+                <option value="below">Below Normal</option>
+              </select>
+            </div>
+            <div>
+              <label for="mortality" class="block text-sm font-medium text-gray-700 mb-1">Mortality Count</label>
+              <input type="number" id="mortality" name="mortality" class="w-full p-2 border rounded" value="0">
+            </div>
+          </div>
+          <div>
+            <label for="health_notes" class="block text-sm font-medium text-gray-700 mb-1">Observations</label>
+            <textarea id="health_notes" name="health_notes" rows="3" class="w-full p-2 border rounded" placeholder="Enter any health observations or concerns"></textarea>
+          </div>
+          <div class="flex justify-end">
+            <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Record Health Check</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Recent Health Records -->
+      <section class="bg-white p-6 rounded-lg shadow">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Recent Health Records</h3>
+        <div class="overflow-x-auto">
+          <table class="min-w-full bg-white">
+            <thead>
+              <tr class="bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase">
+                <th class="py-2 px-4 border-b">Date</th>
+                <th class="py-2 px-4 border-b">Batch</th>
+                <th class="py-2 px-4 border-b">Health Status</th>
+                <th class="py-2 px-4 border-b">Mortality</th>
+                <th class="py-2 px-4 border-b">Recorded By</th>
+                <th class="py-2 px-4 border-b">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-b">
+                <td class="py-2 px-4">Apr 15, 2025</td>
+                <td class="py-2 px-4">Batch A123</td>
+                <td class="py-2 px-4"><span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Good</span></td>
+                <td class="py-2 px-4">0</td>
+                <td class="py-2 px-4">{{ user.name }}</td>
+                <td class="py-2 px-4">
+                  <button class="text-blue-500 hover:text-blue-700">View Details</button>
+                </td>
+              </tr>
+              <tr class="border-b">
+                <td class="py-2 px-4">Apr 14, 2025</td>
+                <td class="py-2 px-4">Batch B456</td>
+                <td class="py-2 px-4"><span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">Fair</span></td>
+                <td class="py-2 px-4">2</td>
+                <td class="py-2 px-4">{{ user.name }}</td>
+                <td class="py-2 px-4">
+                  <button class="text-blue-500 hover:text-blue-700">View Details</button>
+                </td>
+              </tr>
+              <tr class="border-b">
+                <td class="py-2 px-4">Apr 13, 2025</td>
+                <td class="py-2 px-4">Batch C789</td>
+                <td class="py-2 px-4"><span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Excellent</span></td>
+                <td class="py-2 px-4">0</td>
+                <td class="py-2 px-4">{{ user.name }}</td>
+                <td class="py-2 px-4">
+                  <button class="text-blue-500 hover:text-blue-700">View Details</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

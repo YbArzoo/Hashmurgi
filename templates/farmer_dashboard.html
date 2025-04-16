@@ -11,12 +11,12 @@
     <aside class="w-64 bg-white shadow-md px-4 py-6">
       <h1 class="text-2xl font-bold text-green-600 mb-6">Farmer Panel</h1>
       <nav class="space-y-4">
-        <a href="#" class="block text-gray-700 hover:text-green-500">Dashboard</a>
+        <a href="{{ url_for('farmer_dashboard') }}" class="block text-green-600 font-semibold">Dashboard</a>
         <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile</a>
-        <a href="#" class="block text-gray-700 hover:text-green-500">Daily Tasks</a>
-        <a href="#" class="block text-gray-700 hover:text-green-500">Poultry Status</a>
-        <a href="#" class="block text-gray-700 hover:text-green-500">Feed Schedule</a>
-        <a href="/logout" class="block text-gray-700 hover:text-red-500">Logout</a>
+        <a href="{{ url_for('daily_tasks') }}" class="block text-gray-700 hover:text-green-500">Daily Tasks</a>
+        <a href="{{ url_for('poultry_status_farmer') }}" class="block text-gray-700 hover:text-green-500">Poultry Status</a>
+        <a href="{{ url_for('feed_schedule') }}" class="block text-gray-700 hover:text-green-500">Feed Schedule</a>
+        <a href="{{ url_for('logout') }}" class="block text-gray-700 hover:text-red-500">Logout</a>
       </nav>
     </aside>
     <main class="flex-1 p-6 overflow-y-auto">
@@ -27,9 +27,9 @@
       <section class="bg-white p-6 rounded-lg shadow mb-6">
         <h3 class="text-xl font-bold text-gray-800 mb-4">Today's Overview</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <a href="#" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-center">Feed Chickens</a>
-          <a href="#" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 text-center">Update Stock</a>
-          <a href="#" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 text-center">Check Schedule</a>
+          <a href="{{ url_for('feed_schedule') }}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-center">Feed Chickens</a>
+          <a href="{{ url_for('poultry_status_farmer') }}" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 text-center">Update Stock</a>
+          <a href="{{ url_for('daily_tasks') }}" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 text-center">Check Schedule</a>
         </div>
       </section>
       <section class="bg-white p-6 rounded-lg shadow">
