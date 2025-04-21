@@ -2,11 +2,11 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from models import db, User, Product, Order, OrderItem, DeliveryIssue, DeliveryPayment, Batch, Vaccination, Production, FeedLog, Sale, Invoice
+from models import db, User, Product, Order, OrderItem, DeliveryIssue, DeliveryPayment, Batch, Vaccination, Production, FeedLog, Sale, Invoice, PriorityLevel, PoultryBatch
 from config import Config
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
-from datetime import datetime
+from datetime import datetime, date
 from models import Vaccination
 from flask import make_response
 from reportlab.lib.pagesizes import letter
@@ -51,7 +51,7 @@ with app.app_context():
 @app.route('/')
 def home():
     user_id = session.get('user_id')
-    user = User.query.get(user_id) if user_id else None
+    user = db.session.get(User, user_id) if user_id else None
     return render_template('index.html', user=user)
 
 
@@ -105,46 +105,180 @@ def manage_batches():
         return redirect(url_for('login'))
 
     user = User.query.get(session['user_id'])
-    if not user or user.role != 'admin':
+    if not user or user.role not in ['admin', 'manager']:
         return redirect(url_for('login'))
 
-    batches = Batch.query.order_by(Batch.arrival_date.desc()).all()
+    batches = Batch.query.order_by(Batch.batch_name.desc()).all()
     return render_template('admin_manage_batches.html', user=user, batches=batches)
 
 
 
 @app.route('/admin/add_batch', methods=['POST'])
 def add_batch():
-    batch_name = request.form['batch_name']
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    batch_name = request.form['batch_name'].strip()
+    bird_type = request.form['bird_type'].strip()  # <- retrieved here
+
+    # ✅ Insert this block here!
+    if not bird_type:
+        flash("Bird type is required but not found in form!", "danger")
+        return redirect(url_for('manage_batches'))
+
+    breed = request.form.get('breed', '').strip()
+    bird_type = request.form['bird_type'].strip()  # ✅ Must be read from form
+    breed = request.form.get('breed', '').strip()
+    location = request.form.get('location', '').strip()
     quantity = int(request.form['quantity'])
-    arrival_date_str = request.form['arrival_date']
-    notes = request.form['notes']
-    added_by=session['user_id']
+    arrival_date = datetime.strptime(request.form['arrival_date'], '%Y-%m-%d')
+    status = request.form.get('status', 'Healthy')
+    notes = request.form.get('notes', '').strip()
 
+    # Check duplicates
+    existing_poultry_batch = PoultryBatch.query.filter_by(batch_id=batch_name).first()
+    if existing_poultry_batch:
+        flash(f"A poultry batch with name '{batch_name}' already exists.", 'danger')
+        return redirect(url_for('manage_batches'))
 
-    # Convert string to date
-    arrival_date = datetime.strptime(arrival_date_str, '%Y-%m-%d').date()
+    existing_batch = Batch.query.filter_by(batch_name=batch_name).first()
+    if existing_batch:
+        flash(f"A batch with name '{batch_name}' already exists.", 'danger')
+        return redirect(url_for('manage_batches'))
 
-    # You can also get the admin user ID from session if needed
+    # ✅ Create and insert
     new_batch = Batch(
         batch_name=batch_name,
+        bird_type=bird_type,  # ✅ now handled properly
         quantity=quantity,
         arrival_date=arrival_date,
         notes=notes,
-        added_by=session.get('user_id')  # optional
+        added_by=session['user_id']
     )
     db.session.add(new_batch)
-    db.session.commit()
-    return redirect('/admin/manage_batches')
 
+    new_poultry_batch = PoultryBatch(
+        batch_id=batch_name,
+        bird_type=bird_type,
+        breed=breed,
+        location=location,
+        count=quantity,
+        arrival_date=arrival_date,
+        status=status,
+        created_by=session['user_id']
+    )
+    db.session.add(new_poultry_batch)
+
+    db.session.commit()
+    flash("Batch added successfully!", 'success')
+    return redirect(url_for('manage_batches'))
+
+@app.route('/admin/delete_batch/<int:batch_id>')
+def delete_batch(batch_id):
+    batch = Batch.query.get(batch_id)
+
+    if batch:
+        # ✅ First delete all related Vaccinations
+        for vac in batch.vaccinations:
+            db.session.delete(vac)
+
+        # ✅ Delete related Production logs
+        for prod in batch.productions:
+            db.session.delete(prod)
+
+        # ✅ Delete related Feed logs
+        for log in batch.feed_logs:
+            db.session.delete(log)
+
+        # ✅ Delete from PoultryBatch table if exists
+        poultry_batch = PoultryBatch.query.filter_by(batch_id=batch.batch_name).first()
+        if poultry_batch:
+            db.session.delete(poultry_batch)
+
+        # ✅ Now delete the batch
+        db.session.delete(batch)
+
+        db.session.commit()
+        flash('Batch and all related records deleted successfully!', 'success')
+    else:
+        flash('Batch not found.', 'danger')
+
+    return redirect(url_for('manage_batches'))
+
+## This route is for the confirmation to delete any batch associated vaccination, production and feedlog 
+
+@app.route('/admin/check_batch_dependencies/<int:batch_id>')
+def check_batch_dependencies(batch_id):
+    batch = Batch.query.get(batch_id)
+    if not batch:
+        return jsonify({'error': 'Batch not found'}), 404
+
+    return jsonify({
+        'vaccinations': len(batch.vaccinations),
+        'productions': len(batch.productions),
+        'feedlogs': len(batch.feed_logs)
+    })
+
+@app.route('/admin/edit_batch/<int:batch_id>', methods=['GET', 'POST'])
+def edit_batch(batch_id):
+    batch = Batch.query.get_or_404(batch_id)
+
+    # ✅ Add this here to fetch the related PoultryBatch record
+    poultry_batch = PoultryBatch.query.filter_by(batch_id=batch.batch_name).first()
+
+    if request.method == 'POST':
+        try:
+            new_quantity = int(request.form['quantity'])
+
+            # ✅ Update Batch table
+            batch.quantity = new_quantity
+
+            # ✅ Update PoultryBatch table if it exists
+            if poultry_batch:
+                poultry_batch.count = new_quantity
+
+            db.session.commit()
+            flash('Batch quantity updated successfully.', 'success')
+            return redirect(url_for('manage_batches'))
+        except Exception as e:
+            db.session.rollback()
+            flash('Error updating batch quantity: ' + str(e), 'danger')
+
+    return render_template('edit_batch.html', batch=batch)
+
+
+
+# @app.route('/admin/edit_batch/<int:batch_id>', methods=['GET', 'POST'])
+# def edit_batch(batch_id):
+#     batch = Batch.query.get_or_404(batch_id)
+#     poultry_batch = PoultryBatch.query.filter_by(batch_id=batch.batch_name).first()
+
+#     if request.method == 'POST':
+#         try:
+#             new_quantity = int(request.form['quantity'])
+
+#             batch.quantity = new_quantity
+#             if poultry_batch:
+#                 poultry_batch.count = new_quantity
+
+#             db.session.commit()
+#             flash('Batch quantity updated successfully.', 'success')
+#             return redirect(url_for('manage_batches'))
+#         except Exception as e:
+#             db.session.rollback()
+#             flash('Error updating batch quantity: ' + str(e), 'danger')
+
+#     return render_template('edit_batch.html', batch=batch)
 
 @app.route('/admin/feed-resources', methods=['GET', 'POST'])
 def manage_feed_resources():
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
-    user = User.query.get(session['user_id'])
-    if not user or user.role != 'admin':
+    # user = User.query.get(session['user_id'])
+    user = db.session.get(User, session['user_id'])
+
+    if not user or user.role not in ['admin', 'manager']:  # ✅ allow both
         return redirect(url_for('login'))
 
     batches = Batch.query.all()
@@ -157,13 +291,17 @@ def manage_feed_resources():
         cost = float(request.form['cost'])
         notes = request.form['notes']
 
+        # ✅ Flag critical low-feed logs
+        priority = PriorityLevel.high if quantity_kg < 50 else PriorityLevel.medium
+
         feed_entry = FeedLog(
             batch_id=batch_id,
             log_date=log_date,
             feed_type=feed_type,
             quantity_kg=quantity_kg,
             cost=cost,
-            notes=notes
+            notes=notes,
+            priority=priority
         )
         db.session.add(feed_entry)
         db.session.commit()
@@ -171,7 +309,6 @@ def manage_feed_resources():
 
     logs = FeedLog.query.order_by(FeedLog.log_date.desc()).all()
     return render_template('admin_manage_feed.html', user=user, logs=logs, batches=batches)
-
 
 @app.route('/admin/record-sales', methods=['GET', 'POST'])
 def record_sales():
@@ -542,32 +679,77 @@ def manage_vaccinations():
         return redirect(url_for('login'))
 
     user = User.query.get(session['user_id'])
-    if not user or user.role != 'admin':
+    if not user or user.role not in ['admin', 'manager']:
         return redirect(url_for('login'))
 
-    batches = Batch.query.all()
+    batches = Batch.query.order_by(Batch.batch_name.asc()).all()
 
     if request.method == 'POST':
         batch_id = request.form['batch_id']
-        vaccine_name = request.form['vaccine_name']
+        vaccine_name = request.form['vaccine_name'].strip().lower()  # Normalize for duplicate check
         scheduled_date = datetime.strptime(request.form['scheduled_date'], '%Y-%m-%d').date()
+        dosage = request.form.get('dosage', '').strip()
+        administered_by = request.form.get('administered_by', '').strip()
         status = request.form['status']
-        notes = request.form['notes']
+        notes = request.form.get('notes', '').strip()
+        priority_input = request.form.get('priority', 'medium')
+        priority = PriorityLevel[priority_input]
 
+        # ❌ Prevent duplicate vaccine name for the same batch (case-insensitive)
+        existing = Vaccination.query.filter(
+            Vaccination.batch_id == batch_id,
+            db.func.lower(Vaccination.vaccine_name) == vaccine_name
+        ).first()
+
+        if existing:
+            flash('⚠️ This vaccine has already been scheduled for this batch.', 'warning')
+            return redirect(url_for('manage_vaccinations'))
+
+        # ✅ Create and save vaccination using formatted vaccine name
         new_vaccine = Vaccination(
             batch_id=batch_id,
-            vaccine_name=vaccine_name,
+            vaccine_name=vaccine_name.title(),  # Store nicely formatted
             scheduled_date=scheduled_date,
+            dosage=dosage,
+            administered_by=administered_by,
             status=status,
-            notes=notes
+            notes=notes,
+            priority=priority
         )
         db.session.add(new_vaccine)
         db.session.commit()
+        flash('✅ Vaccination added successfully.', 'success')
         return redirect(url_for('manage_vaccinations'))
 
-    vaccinations = Vaccination.query.order_by(Vaccination.scheduled_date.desc()).all()
+    today = date.today()
 
-    return render_template('admin_manage_vaccinations.html', user=user, vaccinations=vaccinations, batches=batches)
+    # Upcoming vaccinations (Scheduled and future date)
+    upcoming = (
+        db.session.query(Vaccination)
+        .join(Batch)
+        .filter(Vaccination.status == 'Scheduled', Vaccination.scheduled_date >= today)
+        .options(db.joinedload(Vaccination.batch))
+        .order_by(Vaccination.scheduled_date.asc())
+        .all()
+    )
+
+    # Vaccination history (Completed or Missed and in the past)
+    history = (
+        db.session.query(Vaccination)
+        .join(Batch)
+        .filter(Vaccination.status.in_(['Completed', 'Missed']), Vaccination.scheduled_date < today)
+        .options(db.joinedload(Vaccination.batch))
+        .order_by(Vaccination.scheduled_date.desc())
+        .all()
+    )
+
+    return render_template(
+        'admin_manage_vaccinations.html',
+        user=user,
+        batches=batches,
+        upcoming=upcoming,
+        history=history
+    )
 
 
 
@@ -577,7 +759,7 @@ def manage_production():
         return redirect(url_for('login'))
 
     user = User.query.get(session['user_id'])
-    if not user or user.role != 'admin':
+    if not user or user.role not in ['admin', 'manager']:  # ✅ allow both
         return redirect(url_for('login'))
 
     batches = Batch.query.all()
@@ -588,13 +770,16 @@ def manage_production():
         egg_count = int(request.form['egg_count'])
         meat_weight_kg = float(request.form['meat_weight_kg'])
         notes = request.form['notes']
+        priority_input = request.form.get('priority', 'medium')  # ✅ NEW
+        priority = PriorityLevel[priority_input]
 
         new_entry = Production(
             batch_id=batch_id,
             production_date=production_date,
             egg_count=egg_count,
             meat_weight_kg=meat_weight_kg,
-            notes=notes
+            notes=notes,
+            priority=priority
         )
         db.session.add(new_entry)
         db.session.commit()
@@ -1135,16 +1320,52 @@ def notifications():
     
     return render_template('notifications.html', user=user)
 
-@app.route('/feed-resources')
+@app.route('/feed-resources', methods=['GET', 'POST'])
 def feed_resources():
     user_id = session.get('user_id')
     user = db.session.get(User, user_id)
-
     
     if not user or user.role != 'manager':
         return redirect(url_for('login'))
-    
-    return render_template('feed_resources.html', user=user)
+
+    batches = Batch.query.all()
+
+    if request.method == 'POST':
+        batch_id = request.form['batch_id']
+        log_date = datetime.strptime(request.form['log_date'], '%Y-%m-%d').date()
+        feed_type = request.form['feed_type']
+        quantity_kg = float(request.form['quantity_kg'])
+        cost = float(request.form['cost'])
+        notes = request.form['notes']
+        priority_input = request.form.get('priority', 'medium')
+        priority = PriorityLevel[priority_input]
+
+        feed_entry = FeedLog(
+            batch_id=batch_id,
+            log_date=log_date,
+            feed_type=feed_type,
+            quantity_kg=quantity_kg,
+            cost=cost,
+            notes=notes,
+            priority=priority
+        )
+        db.session.add(feed_entry)
+        db.session.commit()
+        flash("Feed entry added successfully.", "success")
+        return redirect(url_for('feed_resources'))
+
+    logs = FeedLog.query.order_by(FeedLog.log_date.desc()).all()
+    return render_template('admin_manage_feed.html', user=user, logs=logs, batches=batches)
+
+@app.route('/feed-schedule-manager', methods=['GET', 'POST'])
+def feed_schedule_manager():
+    user = db.session.get(User, session.get('user_id'))
+    if not user or user.role != 'manager':
+        return redirect(url_for('login'))
+
+    today_date = datetime.now().strftime('%Y-%m-%d')
+    return render_template('feed_schedule.html', user=user, today_date=today_date)
+
 
 @app.route('/production-record')
 def production_record():
@@ -1160,30 +1381,59 @@ def production_record():
     
     return render_template('production_record.html', user=user, today_date=today_date)
 
+# @app.route('/vaccination-schedule', methods=['GET', 'POST'])
 @app.route('/vaccination-schedule')
 def vaccination_schedule():
     user_id = session.get('user_id')
     user = db.session.get(User, user_id)
 
-    
-    if not user or user.role != 'manager':
+    if not user or user.role not in ['admin', 'manager']:
         return redirect(url_for('login'))
-    
-    from datetime import datetime
-    today_date = datetime.now().strftime('%Y-%m-%d')
-    
-    return render_template('vaccination_schedule.html', user=user, today_date=today_date)
+
+    batches = Batch.query.all()
+
+    if request.method == 'POST':
+        batch_id = request.form['batch_id']
+        vaccine_name = request.form['vaccine_name']
+        scheduled_date = datetime.strptime(request.form['scheduled_date'], '%Y-%m-%d').date()
+        status = request.form['status']
+        notes = request.form['notes']
+        priority_input = request.form.get('priority', 'medium')
+        priority = PriorityLevel[priority_input]
+
+        new_vaccine = Vaccination(
+            batch_id=batch_id,
+            vaccine_name=vaccine_name,
+            scheduled_date=scheduled_date,
+            status=status,
+            notes=notes,
+            priority=priority
+        )
+        db.session.add(new_vaccine)
+        db.session.commit()
+        return redirect(url_for('manage_vaccinations'))
+
+    vaccinations = Vaccination.query.order_by(Vaccination.scheduled_date.desc()).all()
+    return render_template('admin_manage_vaccinations.html', user=user, vaccinations=vaccinations, batches=batches)
 
 @app.route('/poultry-stock')
 def poultry_stock():
     user_id = session.get('user_id')
     user = db.session.get(User, user_id)
 
-    
     if not user or user.role != 'manager':
         return redirect(url_for('login'))
-    
-    return render_template('poultry_stock.html', user=user)
+
+    # ✅ Sort batches by batch_id (i.e., batch name) in ascending order
+    poultry_batches = PoultryBatch.query.order_by(PoultryBatch.batch_id.asc()).all()
+
+    # ✅ Pass today's date for age calculation
+    from datetime import datetime
+    today = datetime.now().date()
+
+    return render_template('poultry_stock.html', user=user, poultry_batches=poultry_batches, today=today)
+
+
 @app.route('/shop')
 def shop():
     user_id = session.get('user_id')
@@ -1228,6 +1478,7 @@ def manage_orders():
     if not user or user.role not in ['admin', 'manager']:
         return redirect(url_for('login'))
 
+    # Handle form submissions
     if request.method == 'POST':
         order_id = int(request.form['order_id'])
         new_status = request.form.get('status')
@@ -1242,12 +1493,26 @@ def manage_orders():
             db.session.commit()
         return redirect(url_for('manage_orders'))
 
-    orders = Order.query.order_by(Order.order_date.desc()).all()
+    # Fetch all orders
+    orders = Order.query.all()
+    now = datetime.utcnow()
+
+    # Update priority based on emergency criteria
+    for order in orders:
+        urgent = (
+            order.total_amount and order.total_amount > 1000
+        ) or (
+            order.delivery_date and order.delivery_date - now < timedelta(hours=6)
+        )
+        order.priority = PriorityLevel.high if urgent else PriorityLevel.medium
+
+    db.session.commit()
+
+    # Fetch again sorted by priority and order date
+    orders = Order.query.order_by(Order.priority.desc(), Order.order_date.desc()).all()
     delivery_men = User.query.filter_by(role='delivery_man').all()
 
     return render_template('admin_manager_orders.html', user=user, orders=orders, delivery_men=delivery_men)
-
-
 
 @app.route('/delivery/assigned-orders', methods=['GET', 'POST'])
 def delivery_assigned_orders():

@@ -9,17 +9,37 @@
 <body class="bg-gray-100 min-h-screen">
   <div class="flex h-screen">
     <!-- Sidebar -->
-    <aside class="w-64 bg-white shadow-md px-4 py-6">
-      <h1 class="text-2xl font-bold text-green-600 mb-6">Farmer Panel</h1>
-      <nav class="space-y-4">
-        <a href="{{ url_for('farmer_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
-        <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile</a>
-        <a href="{{ url_for('daily_tasks') }}" class="block text-gray-700 hover:text-green-500">Daily Tasks</a>
-        <a href="{{ url_for('poultry_status_farmer') }}" class="block text-gray-700 hover:text-green-500">Poultry Status</a>
-        <a href="{{ url_for('feed_schedule') }}" class="block text-green-600 font-semibold">Feed Schedule</a>
-        <a href="{{ url_for('logout') }}" class="block text-gray-700 hover:text-red-500">Logout</a>
-      </nav>
-    </aside>
+    <!-- Sidebar -->
+<aside class="w-64 bg-white shadow-md px-4 py-6">
+  <h1 class="text-2xl font-bold text-green-600 mb-6">Manager Panel</h1>
+  <h1 class="text-2xl font-bold text-green-600 mb-6">
+    {% if user.role == 'manager' %}
+        <!-- Manager sidebar links -->
+    {% else %}
+         <!-- Farmer sidebar links -->
+    {% endif %}
+
+  </h1>
+  <nav class="space-y-4">
+    {% if user.role == 'manager' %}
+      <a href="{{ url_for('manager_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
+      <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile</a>
+      <a href="{{ url_for('feed_resources') }}" class="block text-gray-700 hover:text-green-500">Feed Resources</a>
+      <a href="{{ url_for('production_record') }}" class="block text-gray-700 hover:text-green-500">Production Records</a>
+      <a href="{{ url_for('vaccination_schedule') }}" class="block text-gray-700 hover:text-green-500">Vaccination Schedule</a>
+      <a href="{{ url_for('manage_orders') }}" class="block text-gray-700 hover:text-green-500">Manage Orders</a>
+      <a href="{{ url_for('logout') }}" class="block text-red-600 hover:text-red-800">Logout</a>
+    {% else %}
+      <a href="{{ url_for('farmer_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
+      <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile</a>
+      <a href="{{ url_for('daily_tasks') }}" class="block text-gray-700 hover:text-green-500">Daily Tasks</a>
+      <a href="{{ url_for('poultry_status_farmer') }}" class="block text-gray-700 hover:text-green-500">Poultry Status</a>
+      <a href="{{ url_for('feed_schedule') }}" class="block text-green-600 font-semibold">Feed Schedule</a>
+      <a href="{{ url_for('logout') }}" class="block text-gray-700 hover:text-red-500">Logout</a>
+    {% endif %}
+  </nav>
+</aside>
+
 
     <!-- Main Content -->
     <main class="flex-1 p-6 overflow-y-auto">

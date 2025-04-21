@@ -47,6 +47,15 @@
             </div>
 
             <div class="col-span-full">
+                <label class="block text-sm font-medium text-gray-700">Priority Level</label>
+                <select name="priority" class="w-full p-2 border rounded">
+                    <option value="high">High</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="low">Low</option>
+                </select>
+            </div>
+
+            <div class="col-span-full">
                 <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
                     ➕ Log Feed Entry
                 </button>
@@ -65,6 +74,7 @@
                     <th class="p-3 border">Qty (kg)</th>
                     <th class="p-3 border">Cost</th>
                     <th class="p-3 border">Notes</th>
+                    <th class="p-3 border">Priority</th>
                 </tr>
             </thead>
             <tbody>
@@ -77,14 +87,31 @@
                     <td class="p-3 border">{{ entry.quantity_kg }}</td>
                     <td class="p-3 border">{{ entry.cost }}</td>
                     <td class="p-3 border">{{ entry.notes or '' }}</td>
+                    <td class="p-3 border">
+                        {% if entry.priority.name == 'high' %}
+                          <span class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs">High</span>
+                        {% elif entry.priority.name == 'medium' %}
+                          <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">Medium</span>
+                        {% elif entry.priority.name == 'low' %}
+                          <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Low</span>
+                        {% else %}
+                          <span class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs">Unknown</span>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="7" class="p-4 text-center text-gray-500">No feed logs found.</td>
+                    <td colspan="8" class="p-4 text-center text-gray-500">No feed logs found.</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+        <!-- Back Button -->
+        {% if user.role == 'admin' %}
+            <a href="{{ url_for('admin_panel') }}" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Back</a>
+        {% elif user.role == 'manager' %}
+            <a href="{{ url_for('poultry_stock') }}" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Back</a>
+        {% endif %}
     </div>
 
 </body>

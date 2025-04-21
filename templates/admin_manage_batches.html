@@ -8,17 +8,44 @@
 </head>
 <body class="bg-gray-100 p-6">
 
-    <div class="max-w-6xl mx-auto bg-white p-6 rounded shadow">
-        <h1 class="text-2xl font-bold mb-6">🐣 Manage Poultry Batches</h1>
-
-        <!-- Add New Batch Form -->
+            <div class="max-w-6xl mx-auto bg-white p-6 rounded shadow">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+            <div class="mb-4">
+                {% for category, message in messages %}
+            <div class="px-4 py-3 rounded text-white 
+                            {% if category == 'success' %}bg-green-500
+                            {% elif category == 'danger' %}bg-red-500
+                            {% else %}bg-blue-500{% endif %}">
+                            {{ message }}
+            </div>
+            {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+       
         <form method="POST" action="/admin/add_batch" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <input type="text" name="batch_name" placeholder="Batch Name" required class="p-2 border rounded">
+            <input type="text" name="bird_type" placeholder="Bird Type (Layer/Broiler/Chick)" required class="p-2 border rounded">
+            <input type="text" name="breed" placeholder="Breed (e.g. Rhode Island Red)" class="p-2 border rounded">
+            <input type="text" name="location" placeholder="Location (e.g. Shed 1)" class="p-2 border rounded">
             <input type="number" name="quantity" placeholder="Quantity" required class="p-2 border rounded">
             <input type="date" name="arrival_date" placeholder="Arrival Date" required class="p-2 border rounded">
+            <label for="status">Status</label>
+            <select name="status" id="status" required class="p-2 border rounded">
+                <option value="">-- Select Status --</option>
+                <option value="Healthy">Healthy</option>
+                <option value="Sick">Sick</option>
+                <option value="Critical">Critical</option>
+                <option value="Under Observation">Under Observation</option>
+            </select>
+
             <textarea name="notes" placeholder="Notes (optional)" class="col-span-full p-2 border rounded"></textarea>
             <button type="submit" class="col-span-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Add Batch</button>
+
+        
         </form>
+        
 
         <!-- Existing Batches Table -->
         <h2 class="text-xl font-semibold mb-4">📋 Existing Batches</h2>
@@ -43,7 +70,8 @@
                     <td class="p-3 border">{{ batch.notes or '' }}</td>
                     <td class="p-3 border">
                         <a href="/admin/edit_batch/{{ batch.id }}" class="text-blue-600 hover:underline">Edit</a> |
-                        <a href="/admin/delete_batch/{{ batch.id }}" class="text-red-600 hover:underline" onclick="return confirm('Are you sure?')">Delete</a>
+                        <a href="#" class="text-red-600 hover:underline" onclick="confirmDelete({{ batch.id }})">Delete</a>
+
                     </td>
                 </tr>
                 {% else %}
@@ -53,7 +81,38 @@
                 {% endfor %}
             </tbody>
         </table>
-    </div>
 
+        <!-- Back Button -->
+        {% if user.role == 'admin' %}
+            <a href="{{ url_for('admin_panel') }}" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Back</a>
+        {% elif user.role == 'manager' %}
+            <a href="{{ url_for('poultry_stock') }}" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Back</a>
+        {% endif %}
+
+    </div>
+    <!-- It's a Javascript Block for Delete Confirmation in the poultry batch -->
+    <script>   
+        function confirmDelete(batchId) {
+          fetch(`/admin/check_batch_dependencies/${batchId}`)
+            .then(response => response.json())
+            .then(data => {
+              let message = 'Are you sure you want to delete this batch?';
+      
+              if (data.vaccinations > 0 || data.productions > 0 || data.feedlogs > 0) {
+                message = `⚠️ This batch has:\n\n` +
+                          `• ${data.vaccinations} Vaccination(s)\n` +
+                          `• ${data.productions} Production record(s)\n` +
+                          `• ${data.feedlogs} Feed log(s)\n\n` +
+                          `Deleting it will remove all associated data.\n\n` +
+                          `Do you still want to proceed?`;
+              }
+      
+              if (confirm(message)) {
+                window.location.href = `/admin/delete_batch/${batchId}`;
+              }
+            });
+        }
+      </script>
+      
 </body>
 </html>

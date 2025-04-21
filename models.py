@@ -1,7 +1,16 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime  # Add this import
+import enum
+from sqlalchemy import Enum
+
 db = SQLAlchemy()
+
+class PriorityLevel(enum.Enum):
+    low = 'Low'
+    medium = 'Medium'
+    high = 'High'
+
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -91,27 +100,38 @@ class DeliveryPayment(db.Model):
     
     
 
+# class Batch(db.Model):
+#     id = db.Column(db.Integer, primary_key=True)
+#     batch_name = db.Column(db.String(100), nullable=False)
+#     bird_type = db.Column(db.String(50), nullable=False)
+#     quantity = db.Column(db.Integer, nullable=False)
+#     arrival_date = db.Column(db.Date, nullable=False)
+#     notes = db.Column(db.Text, nullable=True)
+#     added_by = db.Column(db.Integer, db.ForeignKey('user.id'))  # Optional: track admin who added it
+
+#     def __repr__(self):
+#         return f"<Batch {self.batch_name}>"
+    
 class Batch(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     batch_name = db.Column(db.String(100), nullable=False)
+    bird_type = db.Column(db.String(50), nullable=False)  # ✅ this must now exist
     quantity = db.Column(db.Integer, nullable=False)
     arrival_date = db.Column(db.Date, nullable=False)
     notes = db.Column(db.Text, nullable=True)
-    added_by = db.Column(db.Integer, db.ForeignKey('user.id'))  # Optional: track admin who added it
-
-    def __repr__(self):
-        return f"<Batch {self.batch_name}>"
-    
-    
+    added_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+   
     
 class Vaccination(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     batch_id = db.Column(db.Integer, db.ForeignKey('batch.id'), nullable=False)
     vaccine_name = db.Column(db.String(100), nullable=False)
     scheduled_date = db.Column(db.Date, nullable=False)
+    dosage = db.Column(db.String(100))
+    administered_by = db.Column(db.String(100))
     status = db.Column(db.String(50), default='Scheduled')  # Scheduled, Completed, Missed
+    priority = db.Column(Enum(PriorityLevel), default=PriorityLevel.medium)
     notes = db.Column(db.Text)
-
     batch = db.relationship('Batch', backref='vaccinations')
 
     def __repr__(self):
@@ -126,6 +146,7 @@ class Production(db.Model):
     egg_count = db.Column(db.Integer, default=0)
     meat_weight_kg = db.Column(db.Float, default=0.0)
     notes = db.Column(db.Text)
+    priority = db.Column(Enum(PriorityLevel), default=PriorityLevel.medium)
 
     batch = db.relationship('Batch', backref='productions')
 
@@ -142,6 +163,7 @@ class FeedLog(db.Model):
     quantity_kg = db.Column(db.Float, nullable=False)
     cost = db.Column(db.Float, nullable=False)
     notes = db.Column(db.Text)
+    priority = db.Column(Enum(PriorityLevel), default=PriorityLevel.medium)
 
     batch = db.relationship('Batch', backref='feed_logs')
 
@@ -203,11 +225,13 @@ class PoultryBatch(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     batch_id = db.Column(db.String(20), nullable=False, unique=True)
     bird_type = db.Column(db.String(20), nullable=False)  # layer, broiler, chick
+    breed = db.Column(db.String(50))  # ✅ NEW
+    location = db.Column(db.String(100))  # ✅ NEW
     count = db.Column(db.Integer, nullable=False)
     arrival_date = db.Column(db.Date, nullable=False)
+    status = db.Column(db.String(50), default='Healthy')
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow) 
     # Relationship
     user = db.relationship('User', backref='poultry_batches')
 

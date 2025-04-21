@@ -62,7 +62,7 @@
       <!-- Products Grid -->
       <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         {% for product in products %}
-        <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="bg-blue-700 rounded-lg shadow overflow-hidden">
           <div class="h-48 bg-gray-200 flex items-center justify-center">
             <img src="{{ url_for('static', filename='images/' + (product.image or 'placeholder.jpg')) }}"
               alt="{{ product.name }}" class="h-full w-full object-cover"

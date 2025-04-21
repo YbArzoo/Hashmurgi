@@ -1,90 +1,188 @@
-<!-- templates/admin_manage_vaccinations.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Manage Vaccination Schedule</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vaccination Management - Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 p-6">
+<body class="bg-gray-100 min-h-screen p-6">
 
-    <div class="max-w-6xl mx-auto bg-white p-6 rounded shadow">
-        <h1 class="text-2xl font-bold mb-6">💉 Manage Vaccination Schedule</h1>
+  <main class="max-w-6xl mx-auto bg-white p-6 rounded-lg shadow">
 
-        <!-- Vaccination Form -->
-        <form method="POST" action="/admin/vaccinations" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Select Batch</label>
-                <select name="batch_id" required class="w-full p-2 border rounded">
-                    {% for batch in batches %}
-                        <option value="{{ batch.id }}">{{ batch.batch_name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Vaccine Name</label>
-                <input type="text" name="vaccine_name" required class="w-full p-2 border rounded" placeholder="e.g. Newcastle">
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Scheduled Date</label>
-                <input type="date" name="scheduled_date" required class="w-full p-2 border rounded">
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Status</label>
-                <select name="status" required class="w-full p-2 border rounded">
-                    <option value="Scheduled">Scheduled</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Missed">Missed</option>
-                </select>
-            </div>
-
-            <div class="col-span-full">
-                <label class="block text-sm font-medium text-gray-700">Notes</label>
-                <textarea name="notes" class="w-full p-2 border rounded" placeholder="Any additional information..."></textarea>
-            </div>
-
-            <div class="col-span-full">
-                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                    ➕ Add Vaccination
-                </button>
-            </div>
-        </form>
-
-        <!-- Vaccination Records Table -->
-        <h2 class="text-xl font-semibold mb-4">📋 Vaccination Records</h2>
-        <table class="min-w-full bg-white border rounded shadow overflow-hidden">
-            <thead class="bg-gray-200 text-gray-700">
-                <tr>
-                    <th class="p-3 border">ID</th>
-                    <th class="p-3 border">Batch</th>
-                    <th class="p-3 border">Vaccine</th>
-                    <th class="p-3 border">Date</th>
-                    <th class="p-3 border">Status</th>
-                    <th class="p-3 border">Notes</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for v in vaccinations %}
-                <tr class="border-t">
-                    <td class="p-3 border">{{ v.id }}</td>
-                    <td class="p-3 border">{{ v.batch.batch_name }}</td>
-                    <td class="p-3 border">{{ v.vaccine_name }}</td>
-                    <td class="p-3 border">{{ v.scheduled_date }}</td>
-                    <td class="p-3 border">{{ v.status }}</td>
-                    <td class="p-3 border">{{ v.notes or '' }}</td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="6" class="p-4 text-center text-gray-500">No vaccination records found.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <!-- Header -->
+    <header class="mb-6">
+      <h2 class="text-3xl font-semibold text-gray-800">Vaccination Schedule</h2>
+      <p class="text-gray-500">Administer and manage poultry vaccinations</p>
+    </header>
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="mb-6">
+    {% for category, message in messages %}
+      <div class="px-4 py-2 rounded text-white mb-2
+        {% if category == 'success' %} bg-green-500
+        {% elif category == 'warning' %} bg-yellow-500
+        {% elif category == 'danger' %} bg-red-500
+        {% else %} bg-blue-500
+        {% endif %}">
+        {{ message }}
+      </div>
+    {% endfor %}
     </div>
+    {% endif %}
+    {% endwith %}
 
+
+    <!-- Add Vaccination Form -->
+    <section class="mb-8">
+      <h3 class="text-xl font-bold text-gray-800 mb-4">Add New Vaccination</h3>
+      <form method="POST" action="{{ url_for('manage_vaccinations') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Select Batch</label>
+          <select name="batch_id" class="w-full p-2 border rounded" required>
+            {% for batch in batches %}
+              <option value="{{ batch.id }}">{{ batch.batch_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Vaccine Name</label>
+          <input type="text" name="vaccine_name" class="w-full p-2 border rounded" required>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Scheduled Date</label>
+          <input type="date" name="scheduled_date" class="w-full p-2 border rounded" required>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Dosage</label>
+          <input type="text" name="dosage" class="w-full p-2 border rounded" placeholder="e.g. 0.5ml per bird">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Administered By</label>
+          <input type="text" name="administered_by" class="w-full p-2 border rounded" placeholder="e.g. Dr. Ahmed">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+          <select name="status" class="w-full p-2 border rounded" required>
+            <option value="Scheduled">Scheduled</option>
+            <option value="Completed">Completed</option>
+            <option value="Missed">Missed</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+          <select name="priority" class="w-full p-2 border rounded">
+            <option value="high">High</option>
+            <option value="medium" selected>Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+        <div class="md:col-span-3">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+          <textarea name="notes" class="w-full p-2 border rounded" rows="2" placeholder="Any additional notes..."></textarea>
+        </div>
+        <div class="md:col-span-3">
+          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">➕ Add Vaccination</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Upcoming Vaccinations -->
+    <section class="mb-8">
+      <h3 class="text-xl font-bold text-gray-800 mb-4">Upcoming Vaccinations</h3>
+      <div class="overflow-x-auto">
+        <table class="min-w-full bg-white border rounded">
+          <thead>
+            <tr class="bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase">
+              <th class="py-2 px-4 border-b">Date</th>
+              <th class="py-2 px-4 border-b">Batch</th>
+              <th class="py-2 px-4 border-b">Vaccine</th>
+              <th class="py-2 px-4 border-b">Dosage</th>
+              <th class="py-2 px-4 border-b">Administered By</th>
+              <th class="py-2 px-4 border-b">Priority</th>
+              <th class="py-2 px-4 border-b">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for v in upcoming %}
+            <tr class="border-b">
+              <td class="py-2 px-4">{{ v.scheduled_date.strftime('%b %d, %Y') }}</td>
+              <td class="py-2 px-4">{{ v.batch.batch_name }}</td>
+              <td class="py-2 px-4">{{ v.vaccine_name }}</td>
+              <td class="py-2 px-4">{{ v.dosage or '—' }}</td>
+              <td class="py-2 px-4">{{ v.administered_by or '—' }}</td>
+              <td class="py-2 px-4">
+                <span class="px-2 py-1 rounded text-xs
+                  {% if v.priority.name == 'high' %} bg-red-100 text-red-800
+                  {% elif v.priority.name == 'medium' %} bg-yellow-100 text-yellow-800
+                  {% elif v.priority.name == 'low' %} bg-green-100 text-green-800
+                  {% else %} bg-gray-100 text-gray-800
+                  {% endif %}
+                ">
+                  {{ v.priority.name.capitalize() }}
+                </span>
+              </td>
+              <td class="py-2 px-4">
+                <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">{{ v.status }}</span>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="text-center py-4 text-gray-500">No upcoming vaccinations found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Vaccination History -->
+    <section>
+      <h3 class="text-xl font-bold text-gray-800 mb-4">Vaccination History</h3>
+      <div class="overflow-x-auto">
+        <table class="min-w-full bg-white border rounded">
+          <thead>
+            <tr class="bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase">
+              <th class="py-2 px-4 border-b">Date</th>
+              <th class="py-2 px-4 border-b">Batch</th>
+              <th class="py-2 px-4 border-b">Vaccine</th>
+              <th class="py-2 px-4 border-b">Dosage</th>
+              <th class="py-2 px-4 border-b">Administered By</th>
+              <th class="py-2 px-4 border-b">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for v in history %}
+            <tr class="border-b">
+              <td class="py-2 px-4">{{ v.scheduled_date.strftime('%b %d, %Y') }}</td>
+              <td class="py-2 px-4">{{ v.batch.batch_name }}</td>
+              <td class="py-2 px-4">{{ v.vaccine_name }}</td>
+              <td class="py-2 px-4">{{ v.dosage or '—' }}</td>
+              <td class="py-2 px-4">{{ v.administered_by or '—' }}</td>
+              <td class="py-2 px-4">
+                <span class="px-2 py-1 rounded text-xs
+                  {% if v.status == 'Completed' %} bg-green-100 text-green-800
+                  {% elif v.status == 'Missed' %} bg-red-100 text-red-800
+                  {% else %} bg-gray-100 text-gray-800
+                  {% endif %}
+                ">
+                  {{ v.status }}
+                </span>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="text-center py-4 text-gray-500">No vaccination history found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <!-- Back Button -->
+        {% if user.role == 'admin' %}
+            <a href="{{ url_for('admin_panel') }}" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Back</a>
+        {% elif user.role == 'manager' %}
+            <a href="{{ url_for('poultry_stock') }}" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Back</a>
+        {% endif %}
+      </div>
+    </section>
+
+  </main>
 </body>
 </html>
-
