@@ -13,6 +13,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import io
 from flask_migrate import Migrate
+from models import db, User, Order, DeliveryPayment
 
 
 
@@ -661,11 +662,18 @@ def orders():
     return render_template('order.html', user=user, orders=orders)
 
 
-@app.route('/track-order/<int:order_id>')
-def track_order(order_id):
-    # Logic to track the order
-    # For now, we'll just display the order ID
-    return f"Tracking order with ID: {order_id}"
+@app.route('/track-orders')
+def track_customer_orders():
+    user_id = session.get('user_id')
+    user = db.session.get(User, user_id)
+
+    
+    if not user or user.role != 'customer':
+        return redirect(url_for('login'))
+    
+    # In a real application, you would fetch the user's orders from the database
+    # For now, we'll just render the template with dummy data
+    return render_template('track_orders.html', user=user)
 
 @app.route('/generate-invoice/<int:order_id>')
 def generate_invoice(order_id):
@@ -824,56 +832,31 @@ def delivery_dashboard():
                           today_deliveries=today_deliveries,
                           pending_deliveries=pending_deliveries,
                           completed_deliveries=completed_deliveries)
-@app.route('/assigned-orders')
-def assigned_orders():
-    user_id = session.get('user_id')
-    user = db.session.get(User, user_id)
 
-    
-    if not user or user.role != 'delivery_man':
-        return redirect(url_for('login'))
-    
-    # In a real application, you would fetch orders from the database
-    # For example:
-    # orders = Order.query.filter_by(delivery_man_id=user_id, status='Pending').all()
-    
-    # For now, we'll use dummy data
-    orders = [
-        {"id": 1, "customer_name": "John Doe", "address": "123 Main St, Dhaka", "items": "Chicken (2kg)", "status": "Pending"},
-        {"id": 2, "customer_name": "Jane Smith", "address": "456 Park Ave, Dhaka", "items": "Eggs (30pcs)", "status": "In Transit"}
-    ]
-    
-    history = [
-        {"id": 101, "customer_name": "Alice Johnson", "date": "2025-04-14", "status": "Delivered", "rating": 5},
-        {"id": 102, "customer_name": "Bob Williams", "date": "2025-04-13", "status": "Delivered", "rating": 4}
-    ]
-    
-    return render_template('assigned_orders.html', user=user, orders=orders, history=history)
-
-@app.route('/update-order-status/<int:order_id>', methods=['GET', 'POST'])
-def update_order_status(order_id):
-    user_id = session.get('user_id')
-    user = db.session.get(User, user_id)
-
-    
-    if not user or user.role != 'delivery_man':
-        return redirect(url_for('login'))
-    
-    if request.method == 'POST':
-        # In a real application, you would update the order in the database
-        # For example:
-        # order = Order.query.get(order_id)
-        # if order and order.delivery_man_id == user_id:
-        #     order.status = request.form.get('status')
-        #     if order.status == 'Delivered':
-        #         order.delivered_at = datetime.utcnow()
-        #     db.session.commit()
-        #     flash('Order status updated successfully!', 'success')
-        
-        flash('Order status updated successfully!', 'success')
-    
-    # Redirect back to assigned orders page
-    return redirect(url_for('assigned_orders'))
+# Remove or comment out the first update_order_status function
+# @app.route('/update-order-status/<int:order_id>', methods=['GET', 'POST'])
+# def update_order_status(order_id):
+#     user_id = session.get('user_id')
+#     user = db.session.get(User, user_id)
+#     
+#     if not user or user.role != 'delivery_man':
+#         return redirect(url_for('login'))
+#     
+#     if request.method == 'POST':
+#         # In a real application, you would update the order in the database
+#         # For example:
+#         # order = Order.query.get(order_id)
+#         # if order and order.delivery_man_id == user_id:
+#         #     order.status = request.form.get('status')
+#         #     if order.status == 'Delivered':
+#         #         order.delivered_at = datetime.utcnow()
+#         #     db.session.commit()
+#         #     flash('Order status updated successfully!', 'success')
+#         
+#         flash('Order status updated successfully!', 'success')
+#     
+#     # Redirect back to assigned orders page
+#     return redirect(url_for('assigned_orders'))
 @app.route('/delivery-map')
 def delivery_map():
     user_id = session.get('user_id')
@@ -910,153 +893,210 @@ def delivery_map():
 def report_issues():
     user_id = session.get('user_id')
     user = db.session.get(User, user_id)
-
     
     if not user or user.role != 'delivery_man':
         return redirect(url_for('login'))
     
-    # In a real application, you would fetch orders assigned to this delivery person
-    # For example:
-    # orders = Order.query.filter_by(delivery_man_id=user_id).all()
+    # Fetch orders assigned to this delivery person
+    orders = Order.query.filter_by(delivery_man_id=user_id).all()
     
-    # And you would fetch previous reports submitted by this delivery person
-    # For example:
-    # reports = DeliveryIssue.query.filter_by(reported_by=user_id).order_by(DeliveryIssue.created_at.desc()).all()
+    # Fetch previous reports submitted by this delivery person
+    user_reports = DeliveryIssue.query.filter_by(reported_by=user_id).order_by(DeliveryIssue.created_at.desc()).all()
     
-    # For now, we'll use dummy data
-    orders = [
-        {"id": 1, "customer_name": "John Doe"},
-        {"id": 2, "customer_name": "Jane Smith"}
-    ]
-    
-    reports = [
-        {"id": 1, "order_id": 101, "issue_type": "Wrong Address", "date": "2025-04-14", "status": "Resolved"},
-        {"id": 2, "order_id": 102, "issue_type": "Customer Unavailable", "date": "2025-04-13", "status": "Pending"}
-    ]
-    
-    return render_template('report_issues.html', user=user, orders=orders, reports=reports)
+    return render_template('report_issues.html', user=user, orders=orders, user_reports=user_reports)
 
 @app.route('/submit-issue', methods=['POST'])
 def submit_issue():
     user_id = session.get('user_id')
     user = db.session.get(User, user_id)
-
     
     if not user or user.role != 'delivery_man':
         return redirect(url_for('login'))
     
-    # In a real application, you would save the issue to the database
-    # For example:
-    # order_id = request.form.get('order_id')
-    # issue_type = request.form.get('issue_type')
-    # description = request.form.get('description')
-    # urgency = request.form.get('urgency')
+    # Get form data
+    order_id = request.form.get('order_id')
+    issue_type = request.form.get('issue_type')
+    description = request.form.get('description')
+    urgency = request.form.get('urgency')
     
-    # # Handle image upload if provided
-    # image_filename = None
-    # if 'image' in request.files and request.files['image'].filename:
-    #     image = request.files['image']
-    #     image_filename = secure_filename(image.filename)
-    #     image.save(os.path.join('static/uploads', image_filename))
+    # Handle image upload if provided
+    image_filename = None
+    if 'image' in request.files and request.files['image'].filename:
+        image = request.files['image']
+        if allowed_file(image.filename):
+            image_filename = secure_filename(image.filename)
+            image.save(os.path.join(app.config['UPLOAD_FOLDER'], image_filename))
     
-    # new_issue = DeliveryIssue(
-    #     order_id=order_id,
-    #     reported_by=user_id,
-    #     issue_type=issue_type,
-    #     description=description,
-    #     image=image_filename,
-    #     urgency=urgency,
-    #     status='Pending'
-    # )
-    # db.session.add(new_issue)
-    # db.session.commit()
+    # Create new issue in database
+    new_issue = DeliveryIssue(
+        order_id=order_id,
+        reported_by=user_id,
+        issue_type=issue_type,
+        description=description,
+        image=image_filename,
+        urgency=urgency,
+        status='Pending',
+        created_at=datetime.utcnow()
+    )
+    db.session.add(new_issue)
+    db.session.commit()
     
     flash('Issue reported successfully!', 'success')
     return redirect(url_for('report_issues'))
+
+# Add a new route for admins to view reported issues
+@app.route('/admin/reported-issues', methods=['GET', 'POST'])
+def admin_reported_issues():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user = User.query.get(session['user_id'])
+    if not user or user.role not in ['admin', 'manager']:
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        issue_id = request.form.get('issue_id')
+        new_status = request.form.get('status')
+        
+        issue = DeliveryIssue.query.get(issue_id)
+        if issue:
+            issue.status = new_status
+            db.session.commit()
+            flash('Issue status updated successfully!', 'success')
+        
+        return redirect(url_for('admin_reported_issues'))
+    
+    # Get all issues with reporter information
+    issues = DeliveryIssue.query.join(User, DeliveryIssue.reported_by == User.id).add_entity(User).all()
+    
+    # Transform the query result into a more usable format
+    formatted_issues = []
+    for issue, reporter in issues:
+        issue_dict = {
+            'id': issue.id,
+            'order_id': issue.order_id,
+            'reporter': reporter,
+            'issue_type': issue.issue_type,
+            'description': issue.description,
+            'image': issue.image,
+            'urgency': issue.urgency,
+            'status': issue.status,
+            'created_at': issue.created_at
+        }
+        formatted_issues.append(issue_dict)
+    
+    return render_template('admin_reported_issues.html', user=user, issues=formatted_issues)
+from flask import render_template, redirect, url_for, session
+from datetime import datetime, timedelta
+from models import db, User, Order, DeliveryPayment
+
 @app.route('/delivery-income')
 def delivery_income():
+    # Retrieve user_id from session and check if user exists
     user_id = session.get('user_id')
     user = db.session.get(User, user_id)
-
     
+    # If user is not found or the user is not a 'delivery_man', redirect to login
     if not user or user.role != 'delivery_man':
         return redirect(url_for('login'))
     
-    # In a real application, you would calculate these values from the database
-    # For example:
-    # today = datetime.now().date()
-    # month_start = datetime(today.year, today.month, 1).date()
-    # week_start = today - timedelta(days=today.weekday())
+    # Get today's date
+    today = datetime.now().date()
     
-    # # Get completed orders for different time periods
-    # monthly_orders = Order.query.filter(
-    #     Order.delivery_man_id == user_id,
-    #     Order.status == 'Delivered',
-    #     Order.delivered_at >= month_start
-    # ).all()
+    # Calculate the start of the current month and week
+    month_start = datetime(today.year, today.month, 1).date()
+    week_start = today - timedelta(days=today.weekday())  # Monday of this week
     
-    # weekly_orders = Order.query.filter(
-    #     Order.delivery_man_id == user_id,
-    #     Order.status == 'Delivered',
-    #     Order.delivered_at >= week_start
-    # ).all()
+    # Get completed orders for different time periods
+    monthly_orders = Order.query.filter(
+        Order.delivery_man_id == user_id,
+        Order.status == 'Delivered',
+        Order.delivery_date >= month_start
+    ).all()
     
-    # daily_orders = Order.query.filter(
-    #     Order.delivery_man_id == user_id,
-    #     Order.status == 'Delivered',
-    #     Order.delivered_at >= today
-    # ).all()
+    weekly_orders = Order.query.filter(
+        Order.delivery_man_id == user_id,
+        Order.status == 'Delivered',
+        Order.delivery_date >= week_start
+    ).all()
     
-    # # Calculate income (assuming there's a delivery fee or commission per order)
-    # monthly_income = sum(order.delivery_fee for order in monthly_orders)
-    # weekly_income = sum(order.delivery_fee for order in weekly_orders)
-    # daily_income = sum(order.delivery_fee for order in daily_orders)
+    daily_orders = Order.query.filter(
+        Order.delivery_man_id == user_id,
+        Order.status == 'Delivered',
+        Order.delivery_date == today
+    ).all()
     
-    # # Get payment history
-    # payments = DeliveryPayment.query.filter_by(delivery_man_id=user_id).order_by(DeliveryPayment.payment_date.desc()).all()
+    # Calculate income
+    monthly_income = sum(order.total_amount for order in monthly_orders)
+    weekly_income = sum(order.total_amount for order in weekly_orders)
+    daily_income = sum(order.total_amount for order in daily_orders)
     
-    # For now, we'll use dummy data
-    monthly_income = 15000
-    monthly_deliveries = 45
-    weekly_income = 3500
-    weekly_deliveries = 12
-    daily_income = 800
-    daily_deliveries = 3
+    # Get payment history for this delivery man
+    payments = DeliveryPayment.query.filter_by(delivery_man_id=user_id).order_by(DeliveryPayment.payment_date.desc()).all()
     
-    payments = [
-        {"id": "PAY001", "date": "2025-04-15", "amount": 5000, "method": "Bank Transfer", "status": "Completed"},
-        {"id": "PAY002", "date": "2025-04-01", "amount": 4500, "method": "Mobile Banking", "status": "Completed"},
-        {"id": "PAY003", "date": "2025-03-15", "amount": 5500, "method": "Bank Transfer", "status": "Completed"}
-    ]
+    # Create chart data for the template
+    chart_data = {
+        'weekly': {
+            'labels': [(today - timedelta(days=i)).strftime('%a') for i in range(6, -1, -1)],
+            'datasets': [{
+                'label': 'Daily Income',
+                'data': [0] * 7,  # Placeholder data - you would calculate real values
+                'borderColor': 'rgb(75, 192, 192)',
+                'tension': 0.1
+            }]
+        },
+        'monthly': {
+            'labels': [(today - timedelta(days=i)).strftime('%d %b') for i in range(29, -1, -1)],
+            'datasets': [{
+                'label': 'Daily Income',
+                'data': [0] * 30,  # Placeholder data
+                'borderColor': 'rgb(75, 192, 192)',
+                'tension': 0.1
+            }]
+        },
+        'yearly': {
+            'labels': [(today.replace(day=1) - timedelta(days=i*30)).strftime('%b %Y') for i in range(11, -1, -1)],
+            'datasets': [{
+                'label': 'Monthly Income',
+                'data': [0] * 12,  # Placeholder data
+                'borderColor': 'rgb(75, 192, 192)',
+                'tension': 0.1
+            }]
+        }
+    }
     
+    # Pass all calculated values to the template
     return render_template('delivery_income.html', 
-                          user=user, 
-                          monthly_income=monthly_income,
-                          monthly_deliveries=monthly_deliveries,
-                          weekly_income=weekly_income,
-                          weekly_deliveries=weekly_deliveries,
-                          daily_income=daily_income,
-                          daily_deliveries=daily_deliveries,
-                          payments=payments)
+                           user=user, 
+                           monthly_income=monthly_income,
+                           monthly_deliveries=len(monthly_orders),
+                           weekly_income=weekly_income,
+                           weekly_deliveries=len(weekly_orders),
+                           daily_income=daily_income,
+                           daily_deliveries=len(daily_orders),
+                           payments=payments,
+                           chart_data=chart_data)  # Add chart_data here
+
 @app.route('/view-report/<int:report_id>')
 def view_report(report_id):
     user_id = session.get('user_id')
     user = db.session.get(User, user_id)
-
     
-    if not user or user.role != 'delivery_man':
+    if not user:
         return redirect(url_for('login'))
     
-    # In a real application, you would fetch the report from the database
-    # For example:
-    # report = DeliveryIssue.query.get_or_404(report_id)
-    # if report.reported_by != user_id:
-    #     flash('You are not authorized to view this report', 'danger')
-    #     return redirect(url_for('report_issues'))
+    # Fetch the report from the database
+    report = DeliveryIssue.query.get_or_404(report_id)
     
-    # For now, we'll just redirect back to the report issues page
-    # In a real application, you would render a template with report details
-    return redirect(url_for('report_issues'))
+    # Check if the user is authorized to view this report
+    if user.role == 'delivery_man' and report.reported_by != user_id:
+        flash('You are not authorized to view this report', 'danger')
+        return redirect(url_for('report_issues'))
+    
+    # Get the associated order
+    order = Order.query.get(report.order_id)
+    
+    return render_template('view_report.html', user=user, report=report, order=order)
 @app.route('/update-location', methods=['POST'])
 def update_location():
     if not request.is_json:
@@ -1088,21 +1128,23 @@ def update_location():
 def view_order_details(order_id):
     user_id = session.get('user_id')
     user = db.session.get(User, user_id)
-
     
-    if not user or user.role != 'delivery_man':
+    if not user:
         return redirect(url_for('login'))
     
-    # In a real application, you would fetch the order from the database
-    # For example:
-    # order = Order.query.get_or_404(order_id)
-    # if order.delivery_man_id != user_id:
-    #     flash('You are not authorized to view this order', 'danger')
-    #     return redirect(url_for('assigned_orders'))
+    order = Order.query.get_or_404(order_id)
     
-    # For now, we'll just redirect back to the assigned orders page
-    # In a real application, you would render a template with order details
-    return redirect(url_for('assigned_orders'))
+    # Check permissions based on user role
+    if user.role == 'customer' and order.customer_id != user_id:
+        flash('You are not authorized to view this order', 'danger')
+        return redirect(url_for('track_customer_orders'))
+    elif user.role == 'delivery_man' and order.delivery_man_id != user_id:
+        flash('You are not authorized to view this order', 'danger')
+        return redirect(url_for('assigned_orders'))
+    elif user.role not in ['admin', 'manager', 'customer', 'delivery_man']:
+        return redirect(url_for('home'))
+    
+    return render_template('order_details.html', user=user, order=order)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -1444,18 +1486,6 @@ def shop():
 
 
 
-@app.route('/track-orders')
-def track_customer_orders():
-    user_id = session.get('user_id')
-    user = db.session.get(User, user_id)
-
-    
-    if not user or user.role != 'customer':
-        return redirect(url_for('login'))
-    
-    # In a real application, you would fetch the user's orders from the database
-    # For now, we'll just render the template with dummy data
-    return render_template('track_orders.html', user=user)
 
 @app.route('/farmer-dashboard')
 def farmer_dashboard():
@@ -1513,32 +1543,217 @@ def manage_orders():
     delivery_men = User.query.filter_by(role='delivery_man').all()
 
     return render_template('admin_manager_orders.html', user=user, orders=orders, delivery_men=delivery_men)
-
-@app.route('/delivery/assigned-orders', methods=['GET', 'POST'])
-def delivery_assigned_orders():
+@app.route('/add-to-cart/<int:product_id>', methods=['POST'])
+def add_to_cart(product_id):
     if 'user_id' not in session:
-        return redirect(url_for('login'))
-
+        return jsonify({"error": "Please login first"}), 401
+    
     user = User.query.get(session['user_id'])
+    if not user or user.role != 'customer':
+        return jsonify({"error": "Only customers can add to cart"}), 403
+    
+    product = Product.query.get_or_404(product_id)
+    
+    # Initialize cart in session if it doesn't exist
+    if 'cart' not in session:
+        session['cart'] = []
+    
+    # Check if product already in cart
+    cart = session['cart']
+    product_in_cart = False
+    
+    for item in cart:
+        if item['product_id'] == product_id:
+            item['quantity'] += 1
+            product_in_cart = True
+            break
+    
+    if not product_in_cart:
+        cart.append({
+            'product_id': product_id,
+            'name': product.name,
+            'price': product.unit_price,
+            'quantity': 1
+        })
+    
+    session['cart'] = cart
+    # Force the session to update
+    session.modified = True
+    
+    return jsonify({"success": True, "message": "Product added to cart", "cart_count": len(cart)}), 200
+# Add this route to view the cart
+@app.route('/cart')
+def view_cart():
+    user_id = session.get('user_id')
+    user = db.session.get(User, user_id) if user_id else None
+    
+    if not user or user.role != 'customer':
+        return redirect(url_for('login'))
+    
+    cart = session.get('cart', [])
+    total = sum(item['price'] * item['quantity'] for item in cart)
+    
+    return render_template('cart.html', user=user, cart=cart, total=total)
+
+# Add this route to update cart quantities
+@app.route('/update-cart/<int:product_id>', methods=['POST'])
+def update_cart(product_id):
+    if 'user_id' not in session or 'cart' not in session:
+        return jsonify({"error": "Invalid session"}), 400
+    
+    quantity = request.json.get('quantity', 0)
+    
+    if quantity <= 0:
+        # Remove item from cart
+        session['cart'] = [item for item in session['cart'] if item['product_id'] != product_id]
+    else:
+        # Update quantity
+        for item in session['cart']:
+            if item['product_id'] == product_id:
+                item['quantity'] = quantity
+                break
+    
+    return jsonify({"success": True}), 200
+
+# Add this route to remove items from cart
+@app.route('/remove-from-cart/<int:product_id>', methods=['POST'])
+def remove_from_cart(product_id):
+    if 'cart' in session:
+        session['cart'] = [item for item in session['cart'] if item['product_id'] != product_id]
+    
+    return redirect(url_for('view_cart'))
+
+@app.route('/checkout', methods=['GET', 'POST'])
+def checkout():
+    user_id = session.get('user_id')
+    user = db.session.get(User, user_id)
+    
+    if not user or user.role != 'customer':
+        return redirect(url_for('login'))
+    
+    cart = session.get('cart', [])
+    if not cart:
+        flash('Your cart is empty', 'warning')
+        return redirect(url_for('shop'))
+    
+    total = sum(item['price'] * item['quantity'] for item in cart)
+    
+    if request.method == 'POST':
+        shipping_address = request.form.get('shipping_address')
+        if not shipping_address:
+            flash('Shipping address is required', 'danger')
+            return render_template('checkout.html', user=user, cart=cart, total=total)
+        
+        # Create a new order
+        new_order = Order(
+            customer_id=user.id,
+            status='Pending',
+            total_amount=total,
+            shipping_address=shipping_address,
+            order_date=datetime.utcnow()
+        )
+        db.session.add(new_order)
+        db.session.flush()  # This assigns an ID to new_order
+        
+        # Add order items
+        for item in cart:
+            product = Product.query.get(item['product_id'])
+            if product:
+                order_item = OrderItem(
+                    order_id=new_order.id,
+                    product_id=product.id,
+                    quantity=item['quantity'],
+                    price=product.unit_price
+                )
+                db.session.add(order_item)
+                
+                # Update product quantity (optional)
+                product.quantity = max(0, product.quantity - item['quantity'])
+        
+        db.session.commit()
+        
+        # Clear the cart
+        session.pop('cart', None)
+        
+        flash('Order placed successfully!', 'success')
+        return redirect(url_for('order_confirmation', order_id=new_order.id))
+    
+    return render_template('checkout.html', user=user, cart=cart, total=total)
+
+# Add this route to debug the cart
+@app.route('/debug-cart')
+def debug_cart():
+    cart = session.get('cart', [])
+    return jsonify({
+        'cart': cart,
+        'cart_length': len(cart),
+        'session_keys': list(session.keys())
+    })
+
+@app.route('/assigned-orders')
+def assigned_orders():
+    user_id = session.get('user_id')
+    user = db.session.get(User, user_id)
+    
     if not user or user.role != 'delivery_man':
         return redirect(url_for('login'))
+    
+    # Fetch orders from the database
+    pending_orders = Order.query.filter_by(
+        delivery_man_id=user_id,
+        status='Pending'
+    ).order_by(Order.order_date.desc()).all()
+    
+    in_transit_orders = Order.query.filter_by(
+        delivery_man_id=user_id,
+        status='In Transit'
+    ).order_by(Order.order_date.desc()).all()
+    
+    completed_orders = Order.query.filter_by(
+        delivery_man_id=user_id,
+        status='Delivered'
+    ).order_by(Order.order_date.desc()).all()
+    
+    return render_template('assigned_orders.html', 
+                          user=user, 
+                          pending_orders=pending_orders,
+                          in_transit_orders=in_transit_orders,
+                          completed_orders=completed_orders)
 
-    if request.method == 'POST':
-        order_id = int(request.form['order_id'])
-        new_status = request.form['status']
-        order = Order.query.get(order_id)
-
-        # Only allow updates if the order is assigned to this delivery man
-        if order and order.delivery_man_id == user.id:
-            order.status = new_status
-            db.session.commit()
-
+@app.route('/update-order-status/<int:order_id>', methods=['GET', 'POST'])
+def delivery_update_order_status(order_id):
+    print(f"DEBUG: Accessing delivery_update_order_status with order_id={order_id}")
+    user_id = session.get('user_id')
+    user = db.session.get(User, user_id)
+    
+    if not user or user.role != 'delivery_man':
+        return redirect(url_for('login'))
+    
+    order = Order.query.get_or_404(order_id)
+    
+    # Ensure this order is assigned to the current delivery person
+    if order.delivery_man_id != user_id:
+        flash('You are not authorized to update this order', 'danger')
         return redirect(url_for('assigned_orders'))
-
-    # Fetch only orders assigned to the logged-in delivery man
-    assigned = Order.query.filter_by(delivery_man_id=user.id).order_by(Order.order_date.desc()).all()
-    return render_template('assigned_orders.html', user=user, orders=assigned)
-
+    
+    if request.method == 'POST':
+        new_status = request.form.get('status')
+        notes = request.form.get('notes', '')
+        
+        print(f"DEBUG: Updating order {order_id} status to {new_status}")
+        
+        # Update order status
+        order.status = new_status
+        
+        # If delivered, set delivery date
+        if new_status == 'Delivered':
+            order.delivery_date = datetime.utcnow()
+        
+        db.session.commit()
+        flash('Order status updated successfully!', 'success')
+        return redirect(url_for('assigned_orders'))
+    
+    return render_template('update_order_status.html', user=user, order=order)
 
 
 

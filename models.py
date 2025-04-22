@@ -37,6 +37,8 @@ class Product(db.Model):
     def __repr__(self):
         return f'<Product {self.name}>'
 
+
+
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -47,10 +49,13 @@ class Order(db.Model):
     order_date = db.Column(db.DateTime, default=datetime.utcnow)
     delivery_date = db.Column(db.DateTime)
     
+    # Add priority field
+    priority = db.Column(db.Enum(PriorityLevel), default=PriorityLevel.medium)
+
     # Relationships
     customer = db.relationship('User', foreign_keys=[customer_id], backref='customer_orders')
     delivery_man = db.relationship('User', foreign_keys=[delivery_man_id], backref='delivery_orders')
-    
+
     @property
     def customer_name(self):
         return self.customer.name if self.customer else "Unknown Customer"
@@ -58,6 +63,8 @@ class Order(db.Model):
     @property
     def address(self):
         return self.shipping_address
+
+
 class OrderItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     order_id = db.Column(db.Integer, db.ForeignKey('order.id'))

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Order Details - HashMurgi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="flex h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white shadow-md px-4 py-6">
+      <h1 class="text-2xl font-bold text-green-600 mb-6">Delivery Panel</h1>
+      <nav class="space-y-4">
+        <a href="{{ url_for('delivery_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
+        <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile</a>
+        <a href="{{ url_for('assigned_orders') }}" class="block text-green-600 font-semibold">Assigned Orders</a>
+        <a href="{{ url_for('delivery_map') }}" class="block text-gray-700 hover:text-green-500">Delivery Map</a>
+        <a href="{{ url_for('report_issues') }}" class="block text-gray-700 hover:text-green-500">Report Issues</a>
+        <a href="{{ url_for('delivery_income') }}" class="block text-gray-700 hover:text-green-500">Income</a>
+        <a href="{{ url_for('logout') }}" class="block text-gray-700 hover:text-red-500">Logout</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6 overflow-y-auto">
+      <header class="mb-6 flex justify-between items-center">
+        <div>
+          <h2 class="text-3xl font-semibold text-gray-800">Order Details</h2>
+          <p class="text-gray-500">Order #{{ order.id }}</p>
+        </div>
+        <div>
+          <a href="{{ url_for('assigned_orders') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+            Back to Orders
+          </a>
+        </div>
+      </header>
+
+      <section class="bg-white p-6 rounded-lg shadow mb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Order Information</h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div>
+            <h4 class="font-semibold text-gray-700 mb-2">Customer Information</h4>
+            <div class="bg-gray-50 p-4 rounded">
+              <p class="text-gray-600">Name: <span class="font-semibold">{{ order.customer.name }}</span></p>
+              <p class="text-gray-600">Email: <span class="font-semibold">{{ order.customer.email }}</span></p>
+              <p class="text-gray-600">Phone: <span class="font-semibold">{{ order.customer.phone or 'N/A' }}</span></p>
+            </div>
+          </div>
+          
+          <div>
+            <h4 class="font-semibold text-gray-700 mb-2">Delivery Information</h4>
+            <div class="bg-gray-50 p-4 rounded">
+              <p class="text-gray-600">Address: <span class="font-semibold">{{ order.shipping_address }}</span></p>
+              <p class="text-gray-600">Order Date: <span class="font-semibold">{{ order.order_date.strftime('%Y-%m-%d %H:%M') }}</span></p>
+              <p class="text-gray-600">Status: 
+                <span class="font-semibold 
+                  {% if order.status == 'Pending' %}text-yellow-600
+                  {% elif order.status == 'In Transit' %}text-blue-600
+                  {% elif order.status == 'Delivered' %}text-green-600
+                  {% elif order.status == 'Cancelled' %}text-red-600
+                  {% endif %}">
+                  {{ order.status }}
+                </span>
+              </p>
+              {% if order.delivery_date %}
+              <p class="text-gray-600">Delivered On: <span class="font-semibold">{{ order.delivery_date.strftime('%Y-%m-%d %H:%M') }}</span></p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Order Items -->
+        <div class="mb-6">
+          <h4 class="font-semibold text-gray-700 mb-2">Order Items</h4>
+          <table class="min-w-full bg-white border">
+            <thead>
+              <tr class="bg-gray-100 text-gray-600 text-sm leading-normal">
+                <th class="py-2 px-4 text-left">Item</th>
+                <th class="py-2 px-4 text-left">Quantity</th>
+                <th class="py-2 px-4 text-left">Price</th>
+                <th class="py-2 px-4 text-left">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody class="text-gray-600 text-sm">
+              {% if order_items %}
+                {% for item in order_items %}
+                <tr class="border-b border-gray-200">
+                  <td class="py-2 px-4">{{ item.product.name }}</td>
+                  <td class="py-2 px-4">{{ item.quantity }}</td>
+                  <td class="py-2 px-4">{{ item.price }}</td>
+                  <td class="py-2 px-4">{{ item.quantity * item.price }}</td>
+                </tr>
+                {% endfor %}
+                <tr class="bg-gray-50">
+                  <td colspan="3" class="py-2 px-4 text-right font-semibold">Total:</td>
+                  <td class="py-2 px-4 font-semibold">{{ order.total_amount }}</td>
+                </tr>
+              {% else %}
+                <tr>
+                  <td colspan="4" class="py-2 px-4 text-center">No items found for this order.</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <a href="{{ url_for('update_order_status', order_id=order.id) }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+            Update Status
+          </a>
+          <a href="{{ url_for('report_issues') }}" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+            Report Issue
+          </a>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

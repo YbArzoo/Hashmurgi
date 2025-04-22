@@ -24,6 +24,7 @@
         <a href="{{ url_for('feed_schedule_manager') }}" class="block text-gray-700 hover:text-green-500">Feed Schedule</a>
         <a href="{{ url_for('notifications') }}" class="block text-gray-700 hover:text-green-500">Notifications</a>
         <a href="{{ url_for('orders') }}" class="block text-gray-700 hover:text-green-500">Track Order</a>
+        <a href="{{ url_for('admin_reported_issues') }}" class="block text-gray-700 hover:text-green-500">Reported Issues</a>
         <a href="{{ url_for('manage_orders') }}" class="block text-gray-700 hover:text-blue-500">
           Manage Orders
         </a>
@@ -50,6 +51,8 @@
           <a href="{{ url_for('add_product') }}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
             Add Product
           </a>
+          <a href="{{ url_for('admin_reported_issues') }}" class="inline-block bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+            Delivery Issues
           <a href="{{ url_for('manage_orders') }}" class="inline-block bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700">
             Manage Orders
           </a>

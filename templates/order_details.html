@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Order Details - HashMurgi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="flex h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white shadow-md px-4 py-6 flex flex-col h-full">
+      <h1 class="text-2xl font-bold text-green-600 mb-6">
+        {% if user.role == 'customer' %}
+          Customer Panel
+        {% elif user.role == 'delivery_man' %}
+          Delivery Panel
+        {% elif user.role == 'admin' %}
+          Admin Panel
+        {% elif user.role == 'manager' %}
+          Manager Panel
+        {% endif %}
+      </h1>
+      <nav class="space-y-4 flex-1">
+        {% if user.role == 'customer' %}
+          <a href="{{ url_for('customer_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
+          <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile Management</a>
+          <a href="{{ url_for('shop') }}" class="block text-gray-700 hover:text-green-500">Shop now</a>
+          <a href="{{ url_for('view_cart') }}" class="block text-gray-700 hover:text-green-500">Shopping Cart</a>
+          <a href="{{ url_for('track_customer_orders') }}" class="block text-gray-700 hover:text-green-500">Track My Orders</a>
+        {% elif user.role == 'delivery_man' %}
+          <a href="{{ url_for('delivery_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
+          <a href="{{ url_for('assigned_orders') }}" class="block text-gray-700 hover:text-green-500">Assigned Orders</a>
+          <a href="{{ url_for('report_issues') }}" class="block text-gray-700 hover:text-green-500">Report Issues</a>
+          <a href="{{ url_for('delivery_income') }}" class="block text-gray-700 hover:text-green-500">Income</a>
+          <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile</a>
+        {% elif user.role == 'admin' or user.role == 'manager' %}
+          <a href="{{ url_for('admin_panel' if user.role == 'admin' else 'manager_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
+          <a href="{{ url_for('manage_orders') }}" class="block text-gray-700 hover:text-green-500">Manage Orders</a>
+          <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile</a>
+        {% endif %}
+      </nav>
+      
+      <!-- Logout Button -->
+      <div class="mt-auto pt-6">
+        <a href="{{ url_for('logout') }}" class="block w-full bg-red-500 text-white py-2 px-4 rounded text-center hover:bg-red-600 transition">
+          Logout
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6 overflow-y-auto">
+      <header class="mb-6">
+        <h2 class="text-3xl font-semibold text-gray-800">Order Details</h2>
+        <p class="text-gray-500">Order #{{ order.id }}</p>
+      </header>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="mb-4 p-4 rounded-md {% if category == 'success' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <!-- Order Information -->
+      <section class="bg-white p-6 rounded-lg shadow mb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Order Information</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <p class="text-gray-600"><span class="font-semibold">Order Date:</span> {{ order.order_date.strftime('%B %d, %Y') }}</p>
+            <p class="text-gray-600"><span class="font-semibold">Status:</span> 
+              <span class="{% if order.status == 'Pending' %}text-yellow-600{% elif order.status == 'In Transit' %}text-blue-600{% elif order.status == 'Delivered' %}text-green-600{% elif order.status == 'Cancelled' %}text-red-600{% endif %}">
+                {{ order.status }}
+              </span>
+            </p>
+            <p class="text-gray-600"><span class="font-semibold">Total Amount:</span> ৳{{ order.total_amount }}</p>
+          </div>
+          <div>
+            <p class="text-gray-600"><span class="font-semibold">Customer:</span> {{ order.customer.name }}</p>
+            <p class="text-gray-600"><span class="font-semibold">Shipping Address:</span> {{ order.shipping_address }}</p>
+            {% if order.delivery_date %}
+              <p class="text-gray-600"><span class="font-semibold">Delivery Date:</span> {{ order.delivery_date.strftime('%B %d, %Y') }}</p>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+
+      <!-- Order Items -->
+      <section class="bg-white p-6 rounded-lg shadow mb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Order Items</h3>
+        <div class="overflow-x-auto">
+          <table class="min-w-full bg-white">
+            <thead>
+              <tr class="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
+                <th class="py-3 px-6 text-left">Product</th>
+                <th class="py-3 px-6 text-center">Price</th>
+                <th class="py-3 px-6 text-center">Quantity</th>
+                <th class="py-3 px-6 text-center">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody class="text-gray-600 text-sm">
+              {% for item in order.items %}
+                <tr class="border-b border-gray-200 hover:bg-gray-50">
+                  <td class="py-3 px-6">{{ item.product.name }}</td>
+                  <td class="py-3 px-6 text-center">৳{{ item.price }}</td>
+                  <td class="py-3 px-6 text-center">{{ item.quantity }}</td>
+                  <td class="py-3 px-6 text-center">৳{{ item.subtotal }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot>
+              <tr class="border-t">
+                <td colspan="3" class="py-3 px-6 text-right font-semibold">Total:</td>
+                <td class="py-3 px-6 text-center font-bold text-green-600">৳{{ order.total_amount }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </section>
+
+      <!-- Action Buttons -->
+      <div class="flex flex-wrap gap-4">
+        {% if user.role == 'delivery_man' and order.delivery_man_id == user.id and order.status != 'Delivered' %}
+          <a href="{{ url_for('delivery_update_order_status', order_id=order.id) }}" class="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600">
+            Update Status
+          </a>
+          <a href="{{ url_for('report_issues') }}" class="bg-yellow-500 text-white px-6 py-2 rounded hover:bg-yellow-600">
+            Report Issue
+          </a>
+        {% endif %}
+        
+        {% if user.role == 'admin' or user.role == 'manager' %}
+          <a href="{{ url_for('manage_orders') }}" class="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600">
+            Manage Orders
+          </a>
+        {% endif %}
+        
+        <a href="{{ url_for('assigned_orders' if user.role == 'delivery_man' else 'track_customer_orders' if user.role == 'customer' else 'manage_orders') }}" class="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600">
+          Back to Orders
+        </a>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

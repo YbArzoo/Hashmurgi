@@ -21,8 +21,11 @@
         <a href="{{ url_for('vaccination_schedule') }}" class="block text-gray-700 hover:text-green-500">Vaccination Schedule</a>
         <a href="{{ url_for('production_record') }}" class="block text-gray-700 hover:text-green-500">Production Records</a>
         <a href="{{ url_for('feed_resources') }}" class="block text-gray-700 hover:text-green-500">Feed & Resources</a>
-        <a href="{{ url_for('notifications') }}" class="block text-gray-700 hover:text-green-500">Notifications</a>
+        <a href="{{ url_for('notifications') }}" class="block text-green-600 font-semibold">Notifications</a>
         <a href="{{ url_for('orders') }}" class="block text-gray-700 hover:text-green-500">Track Order</a>
+        <a href="{{ url_for('admin_reported_issues') }}" class="block text-gray-700 hover:text-green-500">
+          Reported Issues
+        </a>
         <!-- Add this line for logout -->
         <a href="{{ url_for('logout') }}" class="block text-red-600 hover:text-red-800">Logout</a>
       </nav>
@@ -43,11 +46,34 @@
           <button class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">Stock Alerts</button>
           <button class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">Orders</button>
           <button class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">System</button>
+          <button class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">Delivery Issues</button>
         </div>
       </section>
 
       <!-- Notifications List -->
       <section class="space-y-4">
+        <!-- Delivery Issues Notifications -->
+        {% set delivery_issues = get_recent_issues() %}
+        {% if delivery_issues %}
+          {% for issue in delivery_issues %}
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg shadow">
+              <div class="flex justify-between items-start">
+                <div>
+                  <h3 class="font-bold text-gray-800">Delivery Issue Reported</h3>
+                  <p class="text-gray-600 mt-1">
+                    {{ issue.reporter.name }} reported a {{ issue.issue_type }} issue for Order #{{ issue.order_id }}
+                  </p>
+                  <p class="text-sm text-gray-500 mt-2">{{ issue.created_at.strftime('%b %d, %Y, %I:%M %p') }}</p>
+                </div>
+                <div class="flex space-x-2">
+                  <a href="{{ url_for('admin_reported_issues') }}" class="text-blue-500 hover:text-blue-700">View Details</a>
+                  <button class="text-blue-500 hover:text-blue-700">Mark as Read</button>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        {% endif %}
+
         <!-- Unread notification -->
         <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg shadow">
           <div class="flex justify-between items-start">

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reported Issues - HashMurgi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="flex h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white shadow-md px-4 py-6">
+      <h1 class="text-2xl font-bold text-green-600 mb-6">{{ 'Admin' if user.role == 'admin' else 'Manager' }} Panel</h1>
+      <nav class="space-y-4">
+        <a href="{{ url_for('admin_panel' if user.role == 'admin' else 'manager_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
+        <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile</a>
+        <a href="{{ url_for('manage_orders') }}" class="block text-gray-700 hover:text-green-500">Manage Orders</a>
+        <a href="{{ url_for('admin_reported_issues') }}" class="block text-green-600 font-semibold">Reported Issues</a>
+        <a href="{{ url_for('logout') }}" class="block text-gray-700 hover:text-red-500">Logout</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6 overflow-y-auto">
+      <header class="mb-6">
+        <h2 class="text-3xl font-semibold text-gray-800">Reported Issues</h2>
+        <p class="text-gray-500">Manage delivery issues reported by delivery personnel</p>
+      </header>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="mb-4 p-4 rounded-md {% if category == 'success' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <!-- Filter Controls -->
+      <section class="bg-white p-6 rounded-lg shadow mb-6">
+        <div class="flex flex-wrap gap-4">
+          <button class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">All Issues</button>
+          <button class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">Pending</button>
+          <button class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">In Progress</button>
+          <button class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">Resolved</button>
+          <button class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">High Priority</button>
+        </div>
+      </section>
+
+      <!-- Issues Table -->
+      <section class="bg-white p-6 rounded-lg shadow">
+        <div class="overflow-x-auto">
+          <table class="min-w-full bg-white">
+            <thead>
+              <tr class="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
+                <th class="py-3 px-6 text-left">ID</th>
+                <th class="py-3 px-6 text-left">Order ID</th>
+                <th class="py-3 px-6 text-left">Reported By</th>
+                <th class="py-3 px-6 text-left">Issue Type</th>
+                <th class="py-3 px-6 text-left">Urgency</th>
+                <th class="py-3 px-6 text-left">Date</th>
+                <th class="py-3 px-6 text-left">Status</th>
+                <th class="py-3 px-6 text-left">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="text-gray-600 text-sm">
+              {% if issues %}
+                {% for issue in issues %}
+                <tr class="border-b border-gray-200 hover:bg-gray-50">
+                  <td class="py-3 px-6">{{ issue.id }}</td>
+                  <td class="py-3 px-6">{{ issue.order_id }}</td>
+                  <td class="py-3 px-6">{{ issue.reporter.name }}</td>
+                  <td class="py-3 px-6">{{ issue.issue_type }}</td>
+                  <td class="py-3 px-6">
+                    <span class="{% if issue.urgency == 'high' %}bg-red-200 text-red-800{% elif issue.urgency == 'medium' %}bg-yellow-200 text-yellow-800{% else %}bg-blue-200 text-blue-800{% endif %} py-1 px-3 rounded-full text-xs">
+                      {{ issue.urgency }}
+                    </span>
+                  </td>
+                  <td class="py-3 px-6">{{ issue.created_at.strftime('%Y-%m-%d') }}</td>
+                  <td class="py-3 px-6">
+                    <span class="{% if issue.status == 'Pending' %}bg-yellow-200 text-yellow-800{% elif issue.status == 'In Progress' %}bg-blue-200 text-blue-800{% elif issue.status == 'Resolved' %}bg-green-200 text-green-800{% endif %} py-1 px-3 rounded-full text-xs">
+                      {{ issue.status }}
+                    </span>
+                  </td>
+                  <td class="py-3 px-6">
+                    <button onclick="openModal({{ issue.id }})" class="bg-blue-500 text-white px-2 py-1 rounded text-xs">Update</button>
+                  </td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="8" class="py-4 px-6 text-center">No reported issues found.</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal for Updating Issue Status -->
+  <div id="updateModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+      <h3 class="text-xl font-bold text-gray-800 mb-4">Update Issue Status</h3>
+      <form id="updateForm" method="POST" action="{{ url_for('admin_reported_issues') }}">
+        <input type="hidden" id="issue_id" name="issue_id" value="">
+        
+        <div class="mb-4">
+          <label class="block text-gray-700 text-sm font-bold mb-2" for="status">
+            Update Status
+          </label>
+          <select name="status" id="status" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+            <option value="Pending">Pending</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Resolved">Resolved</option>
+          </select>
+        </div>
+        
+        <div class="flex items-center justify-between">
+          <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+            Save Changes
+          </button>
+          <button type="button" onclick="closeModal()" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function openModal(issueId) {
+      document.getElementById('issue_id').value = issueId;
+      document.getElementById('updateModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('updateModal').classList.add('hidden');
+    }
+  </script>
+</body>
+</html>

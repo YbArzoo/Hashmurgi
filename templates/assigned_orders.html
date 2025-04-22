@@ -14,7 +14,7 @@
       <nav class="space-y-4">
         <a href="{{ url_for('delivery_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
         <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile</a>
-        <a href="{{ url_for('assigned_orders') }}" class="block text-gray-700 hover:text-green-500">Assigned Orders</a>
+        <a href="{{ url_for('assigned_orders') }}" class="block text-green-600 font-semibold">Assigned Orders</a>
         <a href="{{ url_for('delivery_map') }}" class="block text-gray-700 hover:text-green-500">Delivery Map</a>
         <a href="{{ url_for('report_issues') }}" class="block text-gray-700 hover:text-green-500">Report Issues</a>
         <a href="{{ url_for('delivery_income') }}" class="block text-gray-700 hover:text-green-500">Income</a>
@@ -29,18 +29,23 @@
         <p class="text-gray-500">Manage your delivery tasks</p>
       </header>
 
-      <!-- Orders List -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="mb-4 p-4 rounded-md {% if category == 'success' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <!-- Pending Orders -->
       <section class="bg-white p-6 rounded-lg shadow mb-6">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-xl font-bold text-gray-800">Current Orders</h3>
-          <div>
-            <select class="border rounded p-2 text-sm">
-              <option>All Orders</option>
-              <option>Pending</option>
-              <option>In Transit</option>
-              <option>Delivered</option>
-            </select>
-          </div>
+          <h3 class="text-xl font-bold text-gray-800">Pending Orders</h3>
+          <span class="bg-yellow-100 text-yellow-800 py-1 px-3 rounded-full text-sm">
+            {{ pending_orders|length }} orders
+          </span>
         </div>
         
         <div class="overflow-x-auto">
@@ -50,27 +55,23 @@
                 <th class="py-3 px-6 text-left">Order ID</th>
                 <th class="py-3 px-6 text-left">Customer</th>
                 <th class="py-3 px-6 text-left">Address</th>
-                <th class="py-3 px-6 text-left">Items</th>
-                <th class="py-3 px-6 text-left">Status</th>
+                <th class="py-3 px-6 text-left">Date</th>
+                <th class="py-3 px-6 text-left">Amount</th>
                 <th class="py-3 px-6 text-left">Actions</th>
               </tr>
             </thead>
             <tbody class="text-gray-600 text-sm">
-              {% if orders %}
-                {% for order in orders %}
+              {% if pending_orders %}
+                {% for order in pending_orders %}
                 <tr class="border-b border-gray-200 hover:bg-gray-50">
-                  <td class="py-3 px-6">{{ order.id }}</td>
-                  <td class="py-3 px-6">{{ order.customer_name }}</td>
-                  <td class="py-3 px-6">{{ order.address }}</td>
-                  <td class="py-3 px-6">{{ order.items }}</td>
-                  <td class="py-3 px-6">
-                    <span class="{% if order.status == 'Pending' %}bg-yellow-200 text-yellow-800{% elif order.status == 'In Transit' %}bg-blue-200 text-blue-800{% elif order.status == 'Delivered' %}bg-green-200 text-green-800{% endif %} py-1 px-3 rounded-full text-xs">
-                      {{ order.status }}
-                    </span>
-                  </td>
+                  <td class="py-3 px-6">#{{ order.id }}</td>
+                  <td class="py-3 px-6">{{ order.customer.name }}</td>
+                  <td class="py-3 px-6">{{ order.shipping_address }}</td>
+                  <td class="py-3 px-6">{{ order.order_date.strftime('%Y-%m-%d') }}</td>
+                  <td class="py-3 px-6">{{ order.total_amount }}</td>
                   <td class="py-3 px-6">
                     <div class="flex space-x-2">
-                      <a href="{{ url_for('update_order_status', order_id=order.id) }}" class="bg-blue-500 text-white px-2 py-1 rounded text-xs">Update</a>
+                      <a href="{{ url_for('delivery_update_order_status', order_id=order.id) }}" class="bg-blue-500 text-white px-2 py-1 rounded text-xs">Update</a>
                       <a href="{{ url_for('view_order_details', order_id=order.id) }}" class="bg-gray-500 text-white px-2 py-1 rounded text-xs">Details</a>
                     </div>
                   </td>
@@ -78,7 +79,55 @@
                 {% endfor %}
               {% else %}
                 <tr>
-                  <td colspan="6" class="py-4 px-6 text-center">No orders assigned yet.</td>
+                  <td colspan="6" class="py-4 px-6 text-center">No pending orders.</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- In Transit Orders -->
+      <section class="bg-white p-6 rounded-lg shadow mb-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-bold text-gray-800">In Transit Orders</h3>
+          <span class="bg-blue-100 text-blue-800 py-1 px-3 rounded-full text-sm">
+            {{ in_transit_orders|length }} orders
+          </span>
+        </div>
+        
+        <div class="overflow-x-auto">
+          <table class="min-w-full bg-white">
+            <thead>
+              <tr class="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
+                <th class="py-3 px-6 text-left">Order ID</th>
+                <th class="py-3 px-6 text-left">Customer</th>
+                <th class="py-3 px-6 text-left">Address</th>
+                <th class="py-3 px-6 text-left">Date</th>
+                <th class="py-3 px-6 text-left">Amount</th>
+                <th class="py-3 px-6 text-left">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="text-gray-600 text-sm">
+              {% if in_transit_orders %}
+                {% for order in in_transit_orders %}
+                <tr class="border-b border-gray-200 hover:bg-gray-50">
+                  <td class="py-3 px-6">#{{ order.id }}</td>
+                  <td class="py-3 px-6">{{ order.customer.name }}</td>
+                  <td class="py-3 px-6">{{ order.shipping_address }}</td>
+                  <td class="py-3 px-6">{{ order.order_date.strftime('%Y-%m-%d') }}</td>
+                  <td class="py-3 px-6">{{ order.total_amount }}</td>
+                  <td class="py-3 px-6">
+                    <div class="flex space-x-2">
+                      <a href="{{ url_for('delivery_update_order_status', order_id=order.id) }}" class="bg-blue-500 text-white px-2 py-1 rounded text-xs">Update</a>
+                      <a href="{{ url_for('view_order_details', order_id=order.id) }}" class="bg-gray-500 text-white px-2 py-1 rounded text-xs">Details</a>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="6" class="py-4 px-6 text-center">No orders in transit.</td>
                 </tr>
               {% endif %}
             </tbody>
@@ -95,31 +144,21 @@
               <tr class="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
                 <th class="py-3 px-6 text-left">Order ID</th>
                 <th class="py-3 px-6 text-left">Customer</th>
-                <th class="py-3 px-6 text-left">Date</th>
-                <th class="py-3 px-6 text-left">Status</th>
-                <th class="py-3 px-6 text-left">Rating</th>
+                <th class="py-3 px-6 text-left">Date Delivered</th>
+                <th class="py-3 px-6 text-left">Amount</th>
+                <th class="py-3 px-6 text-left">Actions</th>
               </tr>
             </thead>
             <tbody class="text-gray-600 text-sm">
-              {% if history %}
-                {% for item in history %}
+              {% if completed_orders %}
+                {% for order in completed_orders %}
                 <tr class="border-b border-gray-200 hover:bg-gray-50">
-                  <td class="py-3 px-6">{{ item.id }}</td>
-                  <td class="py-3 px-6">{{ item.customer_name }}</td>
-                  <td class="py-3 px-6">{{ item.date }}</td>
+                  <td class="py-3 px-6">#{{ order.id }}</td>
+                  <td class="py-3 px-6">{{ order.customer.name }}</td>
+                  <td class="py-3 px-6">{{ order.delivery_date.strftime('%Y-%m-%d') if order.delivery_date else 'N/A' }}</td>
+                  <td class="py-3 px-6">{{ order.total_amount }}</td>
                   <td class="py-3 px-6">
-                    <span class="bg-green-200 text-green-800 py-1 px-3 rounded-full text-xs">
-                      {{ item.status }}
-                    </span>
-                  </td>
-                  <td class="py-3 px-6">
-                    <div class="flex">
-                      {% for i in range(item.rating) %}
-                      <svg class="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
-                      </svg>
-                      {% endfor %}
-                    </div>
+                    <a href="{{ url_for('view_order_details', order_id=order.id) }}" class="bg-gray-500 text-white px-2 py-1 rounded text-xs">Details</a>
                   </td>
                 </tr>
                 {% endfor %}

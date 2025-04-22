@@ -20,7 +20,7 @@
         <a href="{{ url_for('delivery_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
         <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile</a>
         <a href="{{ url_for('assigned_orders') }}" class="block text-gray-700 hover:text-green-500">Assigned Orders</a>
-        <a href="{{ url_for('delivery_map') }}" class="block text-gray-700 hover:text-green-500">Delivery Map</a>
+        <a href="{{ url_for('delivery_map') }}" class="block text-green-600 font-semibold">Delivery Map</a>
         <a href="{{ url_for('report_issues') }}" class="block text-gray-700 hover:text-green-500">Report Issues</a>
         <a href="{{ url_for('delivery_income') }}" class="block text-gray-700 hover:text-green-500">Income</a>
         <a href="{{ url_for('logout') }}" class="block text-gray-700 hover:text-red-500">Logout</a>
@@ -34,6 +34,17 @@
         <p class="text-gray-500">View your delivery locations and routes</p>
       </header>
 
+      <!-- Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="mb-4 p-4 rounded-md {% if category == 'success' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
       <!-- Map Controls -->
       <section class="bg-white p-6 rounded-lg shadow mb-6">
         <div class="flex flex-wrap gap-4 mb-4">
@@ -46,7 +57,8 @@
           <select id="delivery-filter" class="border rounded p-2">
             <option value="all">All Deliveries</option>
             <option value="pending">Pending</option>
-            <option value="completed">Completed</option>
+            <option value="in_transit">In Transit</option>
+            <option value="delivered">Delivered</option>
           </select>
         </div>
         
@@ -84,6 +96,7 @@
                   </td>
                   <td class="py-3 px-6">
                     <button onclick="centerMap({{ location.lat }}, {{ location.lng }})" class="bg-blue-500 text-white px-2 py-1 rounded text-xs">View on Map</button>
+                    <a href="{{ url_for('view_order_details', order_id=location.order_id) }}" class="bg-green-500 text-white px-2 py-1 rounded text-xs ml-1">Details</a>
                   </td>
                 </tr>
                 {% endfor %}
@@ -109,17 +122,19 @@
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // Sample delivery locations (replace with actual data from backend)
-    const deliveryLocations = [
-      { id: 1, lat: 23.8103, lng: 90.4125, name: "Customer A", status: "Pending" },
-      { id: 2, lat: 23.8203, lng: 90.4225, name: "Customer B", status: "In Transit" },
-      { id: 3, lat: 23.8003, lng: 90.4025, name: "Customer C", status: "Delivered" }
-    ];
+    // Add markers for each delivery location from the backend data
+    const deliveryLocations = {{ locations|tojson|safe }};
+    const markers = {};
 
-    // Add markers for each delivery location
     deliveryLocations.forEach(location => {
       const marker = L.marker([location.lat, location.lng]).addTo(map);
-      marker.bindPopup(`<b>${location.name}</b><br>Status: ${location.status}`);
+      marker.bindPopup(`
+        <b>Order #${location.order_id}</b><br>
+        Customer: ${location.customer_name}<br>
+        Address: ${location.address}<br>
+        Status: ${location.status}
+      `);
+      markers[location.order_id] = marker;
     });
 
     // Function to center map on a specific location
@@ -140,22 +155,79 @@
           
           // Center map on current location
           map.setView([lat, lng], 15);
+          
+          // Send location update to server
+          updateLocationOnServer(lat, lng);
         });
       } else {
         alert("Geolocation is not supported by this browser.");
       }
     });
 
+    // Update location on server
+    function updateLocationOnServer(lat, lng) {
+      fetch('{{ url_for("update_location") }}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          latitude: lat,
+          longitude: lng
+        }),
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          console.log('Location updated successfully');
+        } else {
+          console.error('Error updating location:', data.error);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+    }
+
     // Filter deliveries
     document.getElementById('delivery-filter').addEventListener('change', function() {
       const filter = this.value;
-      // In a real application, you would filter the markers based on the selected value
-      console.log("Filter changed to:", filter);
+      
+      deliveryLocations.forEach(location => {
+        const marker = markers[location.order_id];
+        const row = document.querySelector(`tr[data-order-id="${location.order_id}"]`);
+        
+        if (filter === 'all' || 
+            (filter === 'pending' && location.status === 'Pending') ||
+            (filter === 'in_transit' && location.status === 'In Transit') ||
+            (filter === 'delivered' && location.status === 'Delivered')) {
+          if (marker) marker.addTo(map);
+          if (row) row.style.display = '';
+        } else {
+          if (marker) map.removeLayer(marker);
+          if (row) row.style.display = 'none';
+        }
+      });
     });
 
     // Optimize route (placeholder function)
     document.getElementById('optimize-route').addEventListener('click', function() {
-      alert("Route optimization would be implemented here with a routing service API");
+      // Get only pending and in-transit orders
+      const activeDeliveries = deliveryLocations.filter(loc => 
+        loc.status === 'Pending' || loc.status === 'In Transit'
+      );
+      
+      if (activeDeliveries.length < 2) {
+        alert("Need at least 2 active deliveries to optimize route");
+        return;
+      }
+      
+      // In a real application, you would call a routing service API here
+      alert("Route optimization would be implemented with a routing service API");
+      
+      // For demonstration, just connect the points with a line
+      const points = activeDeliveries.map(loc => [loc.lat, loc.lng]);
+      L.polyline(points, {color: 'blue'}).addTo(map);
     });
   </script>
 </body>

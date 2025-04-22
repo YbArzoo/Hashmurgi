@@ -62,12 +62,11 @@
       <!-- Products Grid -->
       <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         {% for product in products %}
-        <div class="bg-blue-700 rounded-lg shadow overflow-hidden">
+        <div class="bg-white rounded-lg shadow overflow-hidden">
           <div class="h-48 bg-gray-200 flex items-center justify-center">
             <img src="{{ url_for('static', filename='images/' + (product.image or 'placeholder.jpg')) }}"
               alt="{{ product.name }}" class="h-full w-full object-cover"
               onerror="this.src='/static/images/placeholder.jpg'">
-       
           </div>
           <div class="p-4">
             <h3 class="text-lg font-semibold text-gray-800">{{ product.name }}</h3>
@@ -78,7 +77,6 @@
                       onclick="addToCart({{ product.id }})">
                       Add to Cart
               </button>
-
             </div>
           </div>
         </div>
@@ -100,19 +98,19 @@
 
   <!-- Shopping Cart Floating Button -->
   <div class="fixed bottom-6 right-6">
-    <button class="bg-green-600 text-white p-4 rounded-full shadow-lg hover:bg-green-700">
+    <a href="{{ url_for('view_cart') }}" class="bg-green-600 text-white p-4 rounded-full shadow-lg hover:bg-green-700 flex items-center justify-center">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
       </svg>
-    </button>
-
-
+      <span class="ml-1" id="cart-count">{{ session.get('cart', [])|length }}</span>
+    </a>
   </div>
 
   <script>
     function addToCart(productId) {
+      // Check if user is logged in
       {% if user and user.role == 'customer' %}
-        // If the user is logged in and is a customer, add to cart
+        // Add product to the cart
         fetch('/add-to-cart/' + productId, {
           method: 'POST',
           headers: {
@@ -121,18 +119,26 @@
         })
         .then(response => response.json())
         .then(data => {
-          alert('Product added to cart');
+          if (data.success) {
+            alert('Product added to cart');
+            // Update cart count
+            const cartCountElement = document.getElementById('cart-count');
+            if (cartCountElement) {
+              cartCountElement.textContent = data.cart_count;
+            }
+          } else {
+            alert(data.error || 'Error adding product to cart');
+          }
         })
         .catch(error => {
+          console.error('Error:', error);
           alert('Error adding product to cart');
         });
       {% else %}
-        // If the user is not logged in, ask them to log in
         alert('Please login or register to add items to your cart.');
-        window.location.href = "{{ url_for('login') }}";  // Redirect to the login page
+        window.location.href = "{{ url_for('login') }}";  // Redirect to login page
       {% endif %}
     }
   </script>
-  
 </body>
 </html>
