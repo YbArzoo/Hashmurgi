@@ -62,7 +62,7 @@
       <!-- Products Grid -->
       <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         {% for product in products %}
-        <div class="bg-blue-700 rounded-lg shadow overflow-hidden">
+        <div class="bg-white rounded-lg shadow overflow-hidden">
           <div class="h-48 bg-gray-200 flex items-center justify-center">
             <img src="{{ url_for('static', filename='images/' + (product.image or 'placeholder.jpg')) }}"
               alt="{{ product.name }}" class="h-full w-full object-cover"
@@ -98,16 +98,26 @@
     </main>
   </div>
 
+
   <!-- Shopping Cart Floating Button -->
   <div class="fixed bottom-6 right-6">
-    <button class="bg-green-600 text-white p-4 rounded-full shadow-lg hover:bg-green-700">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-      </svg>
-    </button>
-
-
+    <div class="relative">
+      <a href="{{ url_for('view_cart') }}" class="bg-green-600 text-white p-4 rounded-full shadow-lg hover:bg-green-700 block">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+      </a>
+      
+      {% if session.get('cart') %}
+      <span class="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full px-2">
+        {{ session['cart'] | length }}
+      </span>
+      {% endif %}
+    </div>
   </div>
+  
+
 
   <script>
     function addToCart(productId) {

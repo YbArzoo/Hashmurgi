@@ -1,0 +1,52 @@
+<!-- templates/cart.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Cart</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+  <h2 class="text-3xl font-bold mb-6 text-gray-800">Shopping Cart</h2>
+
+  {% if cart %}
+  <div class="bg-white p-6 rounded-lg shadow">
+    <table class="min-w-full">
+      <thead>
+        <tr class="bg-gray-200">
+          <th class="p-3 text-left">Product</th>
+          <th class="p-3 text-left">Price</th>
+          <th class="p-3 text-left">Quantity</th>
+          <th class="p-3 text-left">Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in cart.values() %}
+        <tr class="border-t">
+          <td class="p-3 flex items-center gap-3">
+            <img src="{{ url_for('static', filename='images/' + (item.image or 'placeholder.jpg')) }}"
+                 alt="{{ item.name }}" class="w-12 h-12 object-cover">
+            {{ item.name }}
+          </td>
+          <td class="p-3">৳{{ item.unit_price }}</td>
+          <td class="p-3">{{ item.quantity }}</td>
+          <td class="p-3">৳{{ item.subtotal }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <form method="POST" action="{{ url_for('checkout') }}">
+      <button type="submit" class="bg-green-600 text-white px-4 py-2 mt-4 inline-block rounded hover:bg-green-700">
+        Place Order
+      </button>
+    </form>
+    
+
+
+  </div>
+  {% else %}
+  <p class="text-gray-600">Your cart is empty.</p>
+  {% endif %}
+</body>
+</html>
