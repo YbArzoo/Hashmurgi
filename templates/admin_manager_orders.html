@@ -77,6 +77,19 @@
         {% endfor %}
       </tbody>
     </table>
+
+    <!-- Back Button -->
+    <div class="mb-4">
+      <a href="{% if user.role == 'admin' %}{{ url_for('admin_panel') }}{% elif user.role == 'manager' %}{{ url_for('manager_dashboard') }}{% else %}{{ url_for('customer_dashboard') }}{% endif %}" 
+        class="inline-block bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded">
+        ← Back
+      </a>
+    </div>
+
+
+
+
+
   </div>
 
 </body>

@@ -58,10 +58,19 @@
                 <p class="font-semibold">৳{{ item.price * item.quantity }}</p>
               </div>
             {% endfor %}
-            <div class="flex justify-between items-center pt-2">
-              <p class="font-bold">Total:</p>
-              <p class="font-bold text-green-600">৳{{ total }}</p>
+            <div class="flex justify-between items-center pt-2 border-t pt-4">
+              <p class="font-medium">Subtotal:</p>
+              <p class="font-medium">৳{{ product_total }}</p>
             </div>
+            <div class="flex justify-between items-center pt-2">
+              <p class="font-medium">Delivery Charge:</p>
+              <p class="font-medium">৳{{ delivery_charge }}</p>
+            </div>
+            <div class="flex justify-between items-center pt-2 border-t font-bold text-green-600">
+              <p>Total:</p>
+              <p>৳{{ total }}</p>
+            </div>
+            
           </div>
         </section>
 

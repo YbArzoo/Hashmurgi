@@ -48,178 +48,62 @@
         </div>
       </section>
 
+
       <!-- Orders List -->
       <section class="bg-white p-6 rounded-lg shadow mb-6">
         <h3 class="text-xl font-bold text-gray-800 mb-4">Recent Orders</h3>
-        
-        <!-- Order 1 -->
-        <div class="border rounded-lg mb-4 overflow-hidden">
-          <div class="bg-gray-50 p-4 border-b flex justify-between items-center">
-            <div>
-              <span class="text-sm text-gray-500">Order #10045</span>
-              <p class="font-semibold">April 15, 2025</p>
-            </div>
-            <div class="flex items-center gap-4">
-              <span class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm">In Transit</span>
-              <span class="font-bold text-green-600">৳1,250</span>
-            </div>
-          </div>
-          <div class="p-4">
-            <div class="flex flex-col md:flex-row gap-4 items-start">
-              <div class="flex-1">
-                <h4 class="font-semibold mb-2">Items</h4>
-                <ul class="text-sm text-gray-600 space-y-1">
-                  <li>2 dozen Farm Fresh Eggs</li>
-                  <li>1 kg Broiler Chicken</li>
-                  <li>1 bag Premium Chicken Feed (5kg)</li>
-                </ul>
-              </div>
-              <div class="flex-1">
-                <h4 class="font-semibold mb-2">Shipping Address</h4>
-                <p class="text-sm text-gray-600">
-                  123 Main Street, Apartment 4B<br>
-                  Dhaka, 1207<br>
-                  Bangladesh
-                </p>
-              </div>
-              <div class="flex-1">
-                <h4 class="font-semibold mb-2">Delivery Status</h4>
-                <div class="flex items-center gap-2 text-sm text-gray-600">
-                  <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Order Confirmed</span>
-                </div>
-                <div class="flex items-center gap-2 text-sm text-gray-600">
-                  <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Processing</span>
-                </div>
-                <div class="flex items-center gap-2 text-sm text-yellow-600 font-medium">
-                  <div class="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                  <span>In Transit</span>
-                </div>
-                <div class="flex items-center gap-2 text-sm text-gray-400">
-                  <div class="w-2 h-2 bg-gray-300 rounded-full"></div>
-                  <span>Delivered</span>
-                </div>
-              </div>
-            </div>
-            <div class="mt-4 flex justify-end gap-2">
-              <button class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">View Details</button>
-              <button class="bg-gray-200 text-gray-800 px-3 py-1 rounded hover:bg-gray-300">Contact Support</button>
-            </div>
-          </div>
-        </div>
 
-        <!-- Order 2 -->
-        <div class="border rounded-lg mb-4 overflow-hidden">
-          <div class="bg-gray-50 p-4 border-b flex justify-between items-center">
-            <div>
-              <span class="text-sm text-gray-500">Order #10044</span>
-              <p class="font-semibold">April 10, 2025</p>
+        {% if orders %}
+          {% for order in orders %}
+          <div class="border rounded-lg mb-4 overflow-hidden">
+            <div class="bg-gray-50 p-4 border-b flex justify-between items-center">
+              <div>
+                <span class="text-sm text-gray-500">Order #{{ order.id }}</span>
+                <p class="font-semibold">{{ order.order_date.strftime('%B %d, %Y') }}</p>
+              </div>
+              <div class="flex items-center gap-4">
+                <span class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm">{{ order.status }}</span>
+                <span class="font-bold text-green-600">৳{{ order.total_amount }}</span>
+              </div>
             </div>
-            <div class="flex items-center gap-4">
-              <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">Delivered</span>
-              <span class="font-bold text-green-600">৳850</span>
+            <div class="p-4">
+              <div class="flex flex-col md:flex-row gap-4 items-start">
+                <div class="flex-1">
+                  <h4 class="font-semibold mb-2">Items</h4>
+                  <ul class="text-sm text-gray-600 space-y-1">
+                    {% for item in order.items %}
+                    <li>{{ item.quantity }} × {{ item.product.name }}</li>
+                    {% endfor %}
+                  </ul>
+                </div>
+                <div class="flex-1">
+                  <h4 class="font-semibold mb-2">Shipping Address</h4>
+                  <p class="text-sm text-gray-600">{{ order.shipping_address }}</p>
+                </div>
+                <div class="flex-1">
+                  <h4 class="font-semibold mb-2">Delivery Status</h4>
+                  <p class="text-sm text-gray-700">{{ order.status }}</p>
+                </div>
+              </div>
+              <div class="mt-4 flex justify-end gap-2">
+                <a href="{{ url_for('view_order_details', order_id=order.id) }}" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">View Details</a>
+              </div>
             </div>
           </div>
-          <div class="p-4">
-            <div class="flex flex-col md:flex-row gap-4 items-start">
-              <div class="flex-1">
-                <h4 class="font-semibold mb-2">Items</h4>
-                <ul class="text-sm text-gray-600 space-y-1">
-                  <li>1 dozen Duck Eggs</li>
-                  <li>2 kg Deshi Chicken</li>
-                </ul>
-              </div>
-              <div class="flex-1">
-                <h4 class="font-semibold mb-2">Shipping Address</h4>
-                <p class="text-sm text-gray-600">
-                  123 Main Street, Apartment 4B<br>
-                  Dhaka, 1207<br>
-                  Bangladesh
-                </p>
-              </div>
-              <div class="flex-1">
-                <h4 class="font-semibold mb-2">Delivery Status</h4>
-                <div class="flex items-center gap-2 text-sm text-gray-600">
-                  <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Order Confirmed</span>
-                </div>
-                <div class="flex items-center gap-2 text-sm text-gray-600">
-                  <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Processing</span>
-                </div>
-                <div class="flex items-center gap-2 text-sm text-gray-600">
-                  <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>In Transit</span>
-                </div>
-                <div class="flex items-center gap-2 text-sm text-green-600 font-medium">
-                  <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Delivered</span>
-                </div>
-              </div>
-            </div>
-            <div class="mt-4 flex justify-end gap-2">
-              <button class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">View Details</button>
-              <button class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">Buy Again</button>
-            </div>
+          {% endfor %}
+        {% else %}
+          <div class="text-center py-12">
+            <h4 class="text-lg text-gray-700">No orders found.</h4>
+            <a href="{{ url_for('shop') }}" class="mt-4 inline-block bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600">
+              Go Shopping
+            </a>
           </div>
-        </div>
-
-        <!-- Order 3 -->
-        <div class="border rounded-lg overflow-hidden">
-          <div class="bg-gray-50 p-4 border-b flex justify-between items-center">
-            <div>
-              <span class="text-sm text-gray-500">Order #10040</span>
-              <p class="font-semibold">April 2, 2025</p>
-            </div>
-            <div class="flex items-center gap-4">
-              <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">Delivered</span>
-              <span class="font-bold text-green-600">৳450</span>
-            </div>
-          </div>
-          <div class="p-4">
-            <div class="flex flex-col md:flex-row gap-4 items-start">
-              <div class="flex-1">
-                <h4 class="font-semibold mb-2">Items</h4>
-                <ul class="text-sm text-gray-600 space-y-1">
-                  <li>10 Day-Old Chicks</li>
-                </ul>
-              </div>
-              <div class="flex-1">
-                <h4 class="font-semibold mb-2">Shipping Address</h4>
-                <p class="text-sm text-gray-600">
-                  123 Main Street, Apartment 4B<br>
-                  Dhaka, 1207<br>
-                  Bangladesh
-                </p>
-              </div>
-              <div class="flex-1">
-                <h4 class="font-semibold mb-2">Delivery Status</h4>
-                <div class="flex items-center gap-2 text-sm text-gray-600">
-                  <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Order Confirmed</span>
-                </div>
-                <div class="flex items-center gap-2 text-sm text-gray-600">
-                  <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Processing</span>
-                </div>
-                <div class="flex items-center gap-2 text-sm text-gray-600">
-                  <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>In Transit</span>
-                </div>
-                <div class="flex items-center gap-2 text-sm text-green-600 font-medium">
-                  <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Delivered</span>
-                </div>
-              </div>
-            </div>
-            <div class="mt-4 flex justify-end gap-2">
-              <button class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">View Details</button>
-              <button class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">Buy Again</button>
-            </div>
-          </div>
-        </div>
+        {% endif %}
       </section>
+
+
+
+
 
       <!-- No Orders Message (hidden by default) -->
       <section class="bg-white p-6 rounded-lg shadow mb-6 hidden">

@@ -73,7 +73,22 @@
             <tfoot>
               <tr class="border-t">
                 <td colspan="3" class="py-4 px-4 text-right font-semibold">Total:</td>
-                <td class="py-4 px-4 text-center font-bold text-green-600">৳{{ total }}</td>
+                <tr>
+                  <td colspan="3" class="py-2 px-4 text-right">Subtotal:</td>
+                  <td class="py-2 px-4 text-center">৳{{ product_total }}</td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td colspan="3" class="py-2 px-4 text-right">Delivery Charge:</td>
+                  <td class="py-2 px-4 text-center">৳{{ delivery_charge }}</td>
+                  <td></td>
+                </tr>
+                <tr class="border-t">
+                  <td colspan="3" class="py-4 px-4 text-right font-semibold">Total:</td>
+                  <td class="py-4 px-4 text-center font-bold text-green-600">৳{{ total }}</td>
+                  <td></td>
+                </tr>
+                
                 <td></td>
               </tr>
             </tfoot>

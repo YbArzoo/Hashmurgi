@@ -667,13 +667,19 @@ def track_customer_orders():
     user_id = session.get('user_id')
     user = db.session.get(User, user_id)
 
-    
     if not user or user.role != 'customer':
         return redirect(url_for('login'))
-    
-    # In a real application, you would fetch the user's orders from the database
-    # For now, we'll just render the template with dummy data
-    return render_template('track_orders.html', user=user)
+
+    orders = (
+        db.session.query(Order)
+        .filter_by(customer_id=user.id)
+        .order_by(Order.order_date.desc())
+        .options(db.joinedload(Order.items).joinedload(OrderItem.product))
+        .all()
+    )
+
+    return render_template('track_orders.html', user=user, orders=orders)
+
 
 @app.route('/generate-invoice/<int:order_id>')
 def generate_invoice(order_id):
@@ -833,30 +839,7 @@ def delivery_dashboard():
                           pending_deliveries=pending_deliveries,
                           completed_deliveries=completed_deliveries)
 
-# Remove or comment out the first update_order_status function
-# @app.route('/update-order-status/<int:order_id>', methods=['GET', 'POST'])
-# def update_order_status(order_id):
-#     user_id = session.get('user_id')
-#     user = db.session.get(User, user_id)
-#     
-#     if not user or user.role != 'delivery_man':
-#         return redirect(url_for('login'))
-#     
-#     if request.method == 'POST':
-#         # In a real application, you would update the order in the database
-#         # For example:
-#         # order = Order.query.get(order_id)
-#         # if order and order.delivery_man_id == user_id:
-#         #     order.status = request.form.get('status')
-#         #     if order.status == 'Delivered':
-#         #         order.delivered_at = datetime.utcnow()
-#         #     db.session.commit()
-#         #     flash('Order status updated successfully!', 'success')
-#         
-#         flash('Order status updated successfully!', 'success')
-#     
-#     # Redirect back to assigned orders page
-#     return redirect(url_for('assigned_orders'))
+
 @app.route('/delivery-map')
 def delivery_map():
     user_id = session.get('user_id')
@@ -992,55 +975,34 @@ from models import db, User, Order, DeliveryPayment
 
 @app.route('/delivery-income')
 def delivery_income():
-    # Retrieve user_id from session and check if user exists
     user_id = session.get('user_id')
     user = db.session.get(User, user_id)
     
-    # If user is not found or the user is not a 'delivery_man', redirect to login
     if not user or user.role != 'delivery_man':
         return redirect(url_for('login'))
-    
-    # Get today's date
+
     today = datetime.now().date()
-    
-    # Calculate the start of the current month and week
     month_start = datetime(today.year, today.month, 1).date()
-    week_start = today - timedelta(days=today.weekday())  # Monday of this week
-    
-    # Get completed orders for different time periods
-    monthly_orders = Order.query.filter(
-        Order.delivery_man_id == user_id,
-        Order.status == 'Delivered',
-        Order.delivery_date >= month_start
-    ).all()
-    
-    weekly_orders = Order.query.filter(
-        Order.delivery_man_id == user_id,
-        Order.status == 'Delivered',
-        Order.delivery_date >= week_start
-    ).all()
-    
-    daily_orders = Order.query.filter(
-        Order.delivery_man_id == user_id,
-        Order.status == 'Delivered',
-        Order.delivery_date == today
-    ).all()
-    
-    # Calculate income
-    monthly_income = sum(order.total_amount for order in monthly_orders)
-    weekly_income = sum(order.total_amount for order in weekly_orders)
-    daily_income = sum(order.total_amount for order in daily_orders)
-    
-    # Get payment history for this delivery man
+    week_start = today - timedelta(days=today.weekday())
+
+    # 🟢 MOVE THIS BLOCK TO THE TOP BEFORE USING IT
     payments = DeliveryPayment.query.filter_by(delivery_man_id=user_id).order_by(DeliveryPayment.payment_date.desc()).all()
-    
-    # Create chart data for the template
+
+    # ✅ FIXED income calculations (use .date() to match against date objects)
+    monthly_income = sum(payment.amount for payment in payments if payment.payment_date.date() >= month_start)
+    weekly_income = sum(payment.amount for payment in payments if payment.payment_date.date() >= week_start)
+    daily_income = sum(payment.amount for payment in payments if payment.payment_date.date() == today)
+
+    monthly_deliveries = len([p for p in payments if p.payment_date.date() >= month_start])
+    weekly_deliveries = len([p for p in payments if p.payment_date.date() >= week_start])
+    daily_deliveries = len([p for p in payments if p.payment_date.date() == today])
+
     chart_data = {
         'weekly': {
             'labels': [(today - timedelta(days=i)).strftime('%a') for i in range(6, -1, -1)],
             'datasets': [{
                 'label': 'Daily Income',
-                'data': [0] * 7,  # Placeholder data - you would calculate real values
+                'data': [0] * 7,
                 'borderColor': 'rgb(75, 192, 192)',
                 'tension': 0.1
             }]
@@ -1049,7 +1011,7 @@ def delivery_income():
             'labels': [(today - timedelta(days=i)).strftime('%d %b') for i in range(29, -1, -1)],
             'datasets': [{
                 'label': 'Daily Income',
-                'data': [0] * 30,  # Placeholder data
+                'data': [0] * 30,
                 'borderColor': 'rgb(75, 192, 192)',
                 'tension': 0.1
             }]
@@ -1058,24 +1020,24 @@ def delivery_income():
             'labels': [(today.replace(day=1) - timedelta(days=i*30)).strftime('%b %Y') for i in range(11, -1, -1)],
             'datasets': [{
                 'label': 'Monthly Income',
-                'data': [0] * 12,  # Placeholder data
+                'data': [0] * 12,
                 'borderColor': 'rgb(75, 192, 192)',
                 'tension': 0.1
             }]
         }
     }
-    
-    # Pass all calculated values to the template
+
     return render_template('delivery_income.html', 
                            user=user, 
                            monthly_income=monthly_income,
-                           monthly_deliveries=len(monthly_orders),
+                           monthly_deliveries=monthly_deliveries,
                            weekly_income=weekly_income,
-                           weekly_deliveries=len(weekly_orders),
+                           weekly_deliveries=weekly_deliveries,
                            daily_income=daily_income,
-                           daily_deliveries=len(daily_orders),
+                           daily_deliveries=daily_deliveries,
                            payments=payments,
-                           chart_data=chart_data)  # Add chart_data here
+                           chart_data=chart_data)
+
 
 @app.route('/view-report/<int:report_id>')
 def view_report(report_id):
@@ -1591,9 +1553,13 @@ def view_cart():
         return redirect(url_for('login'))
     
     cart = session.get('cart', [])
-    total = sum(item['price'] * item['quantity'] for item in cart)
+    product_total = sum(item['price'] * item['quantity'] for item in cart)
+    delivery_charge = 100
+    total = product_total + delivery_charge
+
     
-    return render_template('cart.html', user=user, cart=cart, total=total)
+    return render_template('cart.html', user=user, cart=cart, total=total, product_total=product_total, delivery_charge=delivery_charge)
+
 
 # Add this route to update cart quantities
 @app.route('/update-cart/<int:product_id>', methods=['POST'])
@@ -1636,7 +1602,10 @@ def checkout():
         flash('Your cart is empty', 'warning')
         return redirect(url_for('shop'))
     
-    total = sum(item['price'] * item['quantity'] for item in cart)
+    product_total = sum(item['price'] * item['quantity'] for item in cart)
+    delivery_charge = 100
+    total = product_total + delivery_charge
+
     
     if request.method == 'POST':
         shipping_address = request.form.get('shipping_address')
@@ -1676,9 +1645,11 @@ def checkout():
         session.pop('cart', None)
         
         flash('Order placed successfully!', 'success')
-        return redirect(url_for('order_confirmation', order_id=new_order.id))
+        
+        return redirect(url_for('customer_dashboard')) 
     
-    return render_template('checkout.html', user=user, cart=cart, total=total)
+    return render_template('checkout.html', user=user, cart=cart, total=total, product_total=product_total, delivery_charge=delivery_charge)
+
 
 # Add this route to debug the cart
 @app.route('/debug-cart')
@@ -1742,18 +1713,37 @@ def delivery_update_order_status(order_id):
         
         print(f"DEBUG: Updating order {order_id} status to {new_status}")
         
-        # Update order status
         order.status = new_status
-        
-        # If delivered, set delivery date
+
         if new_status == 'Delivered':
             order.delivery_date = datetime.utcnow()
-        
+
+            # ✅ Check for existing payment before inserting
+            existing_payment = DeliveryPayment.query.filter_by(
+                delivery_man_id=user_id,
+                order_id=order.id
+            ).first()
+
+            if not existing_payment:
+                payment = DeliveryPayment(
+                    delivery_man_id=user_id,
+                    order_id=order.id,
+                    amount=100,
+                    method='Cash',
+                    status='Completed',
+                    payment_date=datetime.utcnow()
+                )
+                db.session.add(payment)
+                print(f"Payment created for Order #{order.id}")
+            else:
+                print(f"Payment already exists for Order #{order.id}")
+
         db.session.commit()
         flash('Order status updated successfully!', 'success')
         return redirect(url_for('assigned_orders'))
-    
+
     return render_template('update_order_status.html', user=user, order=order)
+
 
 #====================================== 22nd April Arzoo added
 
