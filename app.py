@@ -1758,85 +1758,13 @@ def delivery_update_order_status(order_id):
 #====================================== 22nd April Arzoo added
 
 
-@app.route('/add-to-cart/<int:product_id>', methods=['POST'])
-def add_to_cart(product_id):
-    product = Product.query.get_or_404(product_id)
-
-    # Initialize cart in session if it doesn't exist
-    if 'cart' not in session:
-        session['cart'] = {}
-
-    cart = session['cart']
-
-    # If the product is already in cart, increase quantity
-    if str(product_id) in cart:
-        cart[str(product_id)]['quantity'] += 1
-        cart[str(product_id)]['subtotal'] = cart[str(product_id)]['quantity'] * product.unit_price
-    else:
-        cart[str(product_id)] = {
-            'name': product.name,
-            'image': product.image,
-            'quantity': 1,
-            'unit_price': product.unit_price,
-            'subtotal': product.unit_price
-        }
-
-    session.modified = True  # Mark session as modified to save changes
-    return jsonify({'success': True, 'message': f'{product.name} added to cart'})
 
 
-@app.route('/cart')
-def view_cart():
-    user = db.session.get(User, session.get('user_id'))
-    cart = session.get('cart', {})
-    total = sum(item['subtotal'] for item in cart.values())
-    return render_template('cart.html', user=user, cart=cart, total=total)
 
 
-@app.route('/checkout', methods=['POST', 'GET'])
-def checkout():
-    user_id = session.get('user_id')
-    user = db.session.get(User, user_id)
 
-    if not user or user.role != 'customer':
-        return redirect(url_for('login'))
 
-    cart = session.get('cart')
-    if not cart:
-        flash('Your cart is empty!', 'warning')
-        return redirect(url_for('shop'))
 
-    # Calculate total
-    total = sum(item['subtotal'] for item in cart.values())
-
-    # Create Order
-    new_order = Order(
-        customer_id=user_id,
-        status='Pending',
-        total_amount=total,
-        shipping_address=user.address,
-        order_date=datetime.utcnow()
-    )
-    db.session.add(new_order)
-    db.session.commit()  # Commit first to get the order ID
-
-    # Create OrderItems
-    for product_id, item in cart.items():
-        order_item = OrderItem(
-            order_id=new_order.id,
-            product_id=int(product_id),
-            quantity=item['quantity'],
-            price=item['unit_price']
-        )
-        db.session.add(order_item)
-
-    db.session.commit()
-
-    # Clear cart
-    session.pop('cart', None)
-    flash('Order placed successfully!', 'success')
-
-    return redirect(url_for('track_customer_orders'))
 
 
 
