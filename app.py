@@ -16,7 +16,7 @@ from flask_migrate import Migrate
 from models import db, User, Order, DeliveryPayment
 
 
-
+#updated 24th april
 
 
 app = Flask(__name__)
