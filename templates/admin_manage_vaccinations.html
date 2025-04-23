@@ -173,13 +173,11 @@
             <tr><td colspan="7" class="text-center py-4 text-gray-500">No vaccination history found.</td></tr>
             {% endfor %}
           </tbody>
-        </table>
-        <!-- Back Button -->
-        {% if user.role == 'admin' %}
-            <a href="{{ url_for('admin_panel') }}" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Back</a>
-        {% elif user.role == 'manager' %}
-            <a href="{{ url_for('poultry_stock') }}" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Back</a>
-        {% endif %}
+        </table>        
+      </div>
+      <!-- Back Button -->
+      <div class="flex space-x-4">
+        <a href="{{ url_for('admin_panel') if user.role == 'admin' else url_for('manager_dashboard') }}" class="bg-gray-500 text-white px-8 py-4 rounded hover:bg-gray-600">← Back</a>
       </div>
     </section>
 

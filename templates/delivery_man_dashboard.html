@@ -9,13 +9,12 @@
 <body class="bg-gray-100 min-h-screen">
   <div class="flex h-screen">
     <!-- Sidebar -->
-    <!-- Sidebar -->
 <aside class="w-64 bg-white shadow-md px-4 py-6">
   <h1 class="text-2xl font-bold text-green-600 mb-6">Delivery Panel</h1>
   <nav class="space-y-4">
     <a href="{{ url_for('delivery_dashboard') }}" class="block text-green-600 font-semibold">Dashboard</a>
     <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile</a>
-    <a href="{{ url_for('assigned_orders') }}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-center">View Orders</a>
+    <a href="{{ url_for('assigned_orders') }}" class="block text-gray-700 hover:text-green-500">View Orders</a>
 
     <a href="{{ url_for('delivery_map') }}" class="block text-gray-700 hover:text-green-500">Delivery Map</a>
     <a href="{{ url_for('report_issues') }}" class="block text-gray-700 hover:text-green-500">Report Issues</a>

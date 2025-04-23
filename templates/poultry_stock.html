@@ -13,14 +13,9 @@
       <h1 class="text-2xl font-bold text-green-600 mb-6">Manager Panel</h1>
       <nav class="space-y-4">
         <a href="{{ url_for('manager_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
-        <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">
-          Profile Management
-        </a>
+        <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile Management</a>
         <a href="{{ url_for('poultry_stock') }}" class="block text-gray-700 hover:text-green-500">Poultry Stock</a>
         <a href="{{ url_for('add_product') }}" class="block text-gray-700 hover:text-green-500">Add Product</a>
-        <a href="{{ url_for('vaccination_schedule') }}" class="block text-gray-700 hover:text-green-500">Vaccination Schedule</a>
-        <a href="{{ url_for('production_record') }}" class="block text-gray-700 hover:text-green-500">Production Records</a>
-        <a href="{{ url_for('feed_resources') }}" class="block text-gray-700 hover:text-green-500">Feed & Resources</a>
         <a href="{{ url_for('notifications') }}" class="block text-gray-700 hover:text-green-500">Notifications</a>
         <a href="{{ url_for('orders') }}" class="block text-gray-700 hover:text-green-500">Track Order</a>
         <!-- Add this line for logout -->
@@ -39,10 +34,11 @@
       <section class="bg-white p-6 rounded-lg shadow mb-6">
         <h3 class="text-xl font-bold text-gray-800 mb-4">Quick Actions</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <!-- <a href="#" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-center">Add New Batch</a> -->
-          <a href="{{ url_for('manage_batches') }}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-center">Add New Batch</a>
-          <a href="#" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 text-center">Record Mortality</a>
-          <a href="#" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 text-center">Transfer Stock</a>
+          <a href="{{ url_for('manage_batches') }}" class="bg-blue-500 text-white px-2 py-2 rounded hover:bg-blue-600 text-center">Add New Batch</a>
+          <!-- <a href="#" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 text-center">Transfer Stock</a> -->
+          <a href="{{ url_for('vaccination_schedule') }}" class="bg-purple-500 text-white px-2 py-2 rounded hover:bg-blue-600 text-center">Vaccination Schedule</a>
+          <a href="{{ url_for('production_record') }}" class="bg-yellow-500 text-white px-2 py-2 rounded hover:bg-blue-600 text-center">Production Records</a>
+          <a href="{{ url_for('feed_resources') }}" class="bg-green-500 text-white px-2 py-2 rounded hover:bg-blue-600 text-center">Feed & Resources</a> 
         </div>
       </section>
 
@@ -75,18 +71,18 @@
 
       <!-- Batch Details -->
       <section class="bg-white p-6 rounded-lg shadow mb-6">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-xl font-bold text-gray-800">Batch Details</h3>
-          <div class="flex gap-2">
+          <h3 class="text-xl font-bold text-gray-800 mb-4">Batch Details</h3>
             <select class="p-2 border rounded text-sm">
               <option>All Types</option>
               <option>Layers</option>
               <option>Broilers</option>
-              <option>Chicks</option>
-            </select>
-            <input type="text" placeholder="Search batches..." class="p-2 border rounded text-sm">
-          </div>
-        </div>
+              <option>Chicks</option> 
+            </select> 
+            <form method="GET" action="{{ url_for('poultry_stock') }}" class="flex items-center gap-2 mb-4">
+              <input type="text" name="search" value="{{ search or '' }}" placeholder="Search by Batch ID, Date, Type, Status" class="p-2 border rounded text-sm" />
+              <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-sm">Search</button>
+            </form>
+            
         <div class="overflow-x-auto">
           <table class="min-w-full bg-white border">
             <thead>
@@ -145,46 +141,114 @@
         </div>
       </section>
 
-      <!-- Mortality Records -->
-      <section class="bg-white p-6 rounded-lg shadow">
-        <h3 class="text-xl font-bold text-gray-800 mb-4">Recent Mortality Records</h3>
+      <!-- Production Details -->
+
+      <section class="bg-white p-6 rounded-lg shadow mt-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Production Details</h3>
+      
+        <form method="GET" action="{{ url_for('poultry_stock') }}" class="flex items-center gap-2 mb-4">
+          <input type="text" name="prod_search" value="{{ prod_search or '' }}" placeholder="Search by Batch ID, Date, or Type"
+                 class="p-2 border rounded text-sm w-full max-w-sm" />
+          <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm">
+            Search
+          </button>
+        </form>
+      
         <div class="overflow-x-auto">
           <table class="min-w-full bg-white border">
             <thead>
-              <tr class="bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase">
-                <th class="py-2 px-4 border-b">Date</th>
-                <th class="py-2 px-4 border-b">Batch ID</th>
-                <th class="py-2 px-4 border-b">Count</th>
-                <th class="py-2 px-4 border-b">Cause</th>
-                <th class="py-2 px-4 border-b">Recorded By</th>
-                <th class="py-2 px-4 border-b">Actions</th>
+              <tr class="bg-gray-100 text-gray-700 text-sm">
+                <th class="p-3 border">Batch</th>
+                <th class="p-3 border">Date</th>
+                <th class="p-3 border">Eggs</th>
+                <th class="p-3 border">Meat (kg)</th>
+                <th class="p-3 border">Priority</th>
               </tr>
             </thead>
             <tbody>
-              <tr class="border-b">
-                <td class="py-2 px-4">Apr 10, 2025</td>
-                <td class="py-2 px-4">B456</td>
-                <td class="py-2 px-4">2</td>
-                <td class="py-2 px-4">Natural causes</td>
-                <td class="py-2 px-4">John Doe</td>
-                <td class="py-2 px-4">
-                  <button class="text-blue-500 hover:text-blue-700">View Details</button>
+              {% for p in productions %}
+              <tr class="border-t text-sm text-gray-800">
+                <td class="p-3 border">{{ p.batch.batch_name }}</td>
+                <td class="p-3 border">{{ p.production_date }}</td>
+                <td class="p-3 border">{{ p.egg_count }}</td>
+                <td class="p-3 border">{{ p.meat_weight_kg }}</td>
+                <td class="p-3 border">
+                  {% if p.priority.name == 'high' %}
+                    <span class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs">High</span>
+                  {% elif p.priority.name == 'medium' %}
+                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">Medium</span>
+                  {% else %}
+                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Low</span>
+                  {% endif %}
                 </td>
               </tr>
-              <tr class="border-b">
-                <td class="py-2 px-4">Apr 5, 2025</td>
-                <td class="py-2 px-4">A123</td>
-                <td class="py-2 px-4">1</td>
-                <td class="py-2 px-4">Injury</td>
-                <td class="py-2 px-4">Jane Smith</td>
-                <td class="py-2 px-4">
-                  <button class="text-blue-500 hover:text-blue-700">View Details</button>
+              {% else %}
+              <tr>
+                <td colspan="5" class="p-4 text-center text-gray-500">No production records found.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>   
+      
+      <!-- Feedlog -->
+
+      <section class="bg-white p-6 rounded-lg shadow mt-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Feedlog</h3>
+      
+        <form method="GET" action="{{ url_for('poultry_stock') }}" class="flex items-center gap-2 mb-4">
+          <input type="text" name="feed_search" value="{{ feed_search or '' }}"
+                 placeholder="Search by Feed ID, Type, or Batch ID"
+                 class="p-2 border rounded text-sm w-full max-w-sm" />
+          <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm">
+            Search
+          </button>
+        </form>
+      
+        <div class="overflow-x-auto">
+          <table class="min-w-full bg-white border">
+            <thead>
+              <tr class="bg-gray-100 text-gray-700 text-sm">
+                <th class="p-3 border">Feed ID</th>
+                <th class="p-3 border">Batch</th>
+                <th class="p-3 border">Date</th>
+                <th class="p-3 border">Feed Type</th>
+                <th class="p-3 border">Qty (kg)</th>
+                <th class="p-3 border">Cost (BDT)</th>
+                <th class="p-3 border">Priority</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for feed in feed_logs %}
+              <tr class="border-t text-sm text-gray-800">
+                <td class="p-3 border">{{ feed.id }}</td>
+                <td class="p-3 border">{{ feed.batch.batch_name }}</td>
+                <td class="p-3 border">{{ feed.log_date }}</td>
+                <td class="p-3 border">{{ feed.feed_type }}</td>
+                <td class="p-3 border">{{ feed.quantity_kg }}</td>
+                <td class="p-3 border">{{ feed.cost }}</td>
+                <td class="p-3 border">
+                  {% if feed.priority.name == 'high' %}
+                    <span class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs">High</span>
+                  {% elif feed.priority.name == 'medium' %}
+                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">Medium</span>
+                  {% else %}
+                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Low</span>
+                  {% endif %}
                 </td>
               </tr>
+              {% else %}
+              <tr>
+                <td colspan="7" class="p-4 text-center text-gray-500">No feed records found.</td>
+              </tr>
+              {% endfor %}
             </tbody>
           </table>
         </div>
       </section>
+      
+      
     </main>
   </div>
 </body>

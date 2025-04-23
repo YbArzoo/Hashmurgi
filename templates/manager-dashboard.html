@@ -17,10 +17,7 @@
           Profile Management
         </a>
         <a href="{{ url_for('poultry_stock') }}" class="block text-gray-700 hover:text-green-500">Poultry Stock</a>
-        <a href="{{ url_for('add_product') }}" class="block text-gray-700 hover:text-green-500">Add Product</a>
-        <a href="{{ url_for('manage_vaccinations') }}" class="block text-gray-700 hover:text-green-500">Vaccination Schedule</a>
-        <a href="{{ url_for('production_record') }}" class="block text-gray-700 hover:text-green-500">Production Records</a>
-        <a href="{{ url_for('feed_resources') }}" class="block text-gray-700 hover:text-green-500">Feed & Resources</a>
+        <!-- <a href="{{ url_for('add_product') }}" class="block text-gray-700 hover:text-green-500">Add Product</a> -->
         <a href="{{ url_for('feed_schedule_manager') }}" class="block text-gray-700 hover:text-green-500">Feed Schedule</a>
         <a href="{{ url_for('notifications') }}" class="block text-gray-700 hover:text-green-500">Notifications</a>
         <a href="{{ url_for('orders') }}" class="block text-gray-700 hover:text-green-500">Track Order</a>
@@ -48,17 +45,26 @@
           <a href="{{ url_for('poultry_stock') }}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-center">Check Stock</a>
           <a href="{{ url_for('orders') }}" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 text-center">Track Orders</a>
           <a href="#" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 text-center">Employee List</a>
-          <a href="{{ url_for('add_product') }}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+          <a href="{{ url_for('add_product') }}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-center">
             Add Product
           </a>
-          <a href="{{ url_for('admin_reported_issues') }}" class="inline-block bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+          <a href="{{ url_for('admin_reported_issues') }}" class="inline-block bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 text-center">
             Delivery Issues
-          <a href="{{ url_for('manage_orders') }}" class="inline-block bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700">
+          <a href="{{ url_for('manage_orders') }}" class="inline-block bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700 text-center">
             Manage Orders
           </a>
         </div>
       </section>
       
+      <form method="GET" action="{{ url_for('manager_dashboard') }}" class="mb-4 flex items-center gap-2">
+        <input type="text" name="q" value="{{ query or '' }}" placeholder="Search by product name or ID"
+               class="p-2 border rounded w-full max-w-xs" />
+        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+          Search
+        </button>
+      </form>
+      
+
       <section class="bg-white p-6 rounded-lg shadow mt-6">
         <h3 class="text-xl font-bold text-gray-800 mb-4">Recent Products</h3>
         {% if products %}
@@ -87,7 +93,7 @@
           </table>
         </div>
         {% else %}
-        <p class="text-gray-500">No products have been added yet.</p>
+        <p class="text-gray-500">No products found for your search.</p>
         {% endif %}
       </section>
       

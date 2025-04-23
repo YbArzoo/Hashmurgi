@@ -555,10 +555,21 @@ def manager_dashboard():
     user_id = session.get('user_id')
     user = db.session.get(User, user_id)
 
+    if not user or user.role != 'manager':
+        return redirect(url_for('login'))
 
-    if user and user.role == 'manager':  # Use dot notation
-        return render_template('manager-dashboard.html', user=user)
-    return redirect(url_for('home'))  # Redirect if the user is not a manager
+    query = request.args.get('q', '').strip()
+
+    if query:
+        products = Product.query.filter(
+            (Product.name.ilike(f'%{query}%')) |
+            (Product.category.ilike(f'%{query}%')) |
+            (db.cast(Product.id, db.String).ilike(f'%{query}%'))
+        ).order_by(Product.id.desc()).all()
+    else:
+        products = Product.query.order_by(Product.id.desc()).limit(5).all()
+
+    return render_template('manager-dashboard.html', user=user, products=products, query=query)
 
 
 
@@ -667,19 +678,13 @@ def track_customer_orders():
     user_id = session.get('user_id')
     user = db.session.get(User, user_id)
 
+    
     if not user or user.role != 'customer':
         return redirect(url_for('login'))
-
-    orders = (
-        db.session.query(Order)
-        .filter_by(customer_id=user.id)
-        .order_by(Order.order_date.desc())
-        .options(db.joinedload(Order.items).joinedload(OrderItem.product))
-        .all()
-    )
-
-    return render_template('track_orders.html', user=user, orders=orders)
-
+    
+    # In a real application, you would fetch the user's orders from the database
+    # For now, we'll just render the template with dummy data
+    return render_template('track_orders.html', user=user)
 
 @app.route('/generate-invoice/<int:order_id>')
 def generate_invoice(order_id):
@@ -839,7 +844,30 @@ def delivery_dashboard():
                           pending_deliveries=pending_deliveries,
                           completed_deliveries=completed_deliveries)
 
-
+# Remove or comment out the first update_order_status function
+# @app.route('/update-order-status/<int:order_id>', methods=['GET', 'POST'])
+# def update_order_status(order_id):
+#     user_id = session.get('user_id')
+#     user = db.session.get(User, user_id)
+#     
+#     if not user or user.role != 'delivery_man':
+#         return redirect(url_for('login'))
+#     
+#     if request.method == 'POST':
+#         # In a real application, you would update the order in the database
+#         # For example:
+#         # order = Order.query.get(order_id)
+#         # if order and order.delivery_man_id == user_id:
+#         #     order.status = request.form.get('status')
+#         #     if order.status == 'Delivered':
+#         #         order.delivered_at = datetime.utcnow()
+#         #     db.session.commit()
+#         #     flash('Order status updated successfully!', 'success')
+#         
+#         flash('Order status updated successfully!', 'success')
+#     
+#     # Redirect back to assigned orders page
+#     return redirect(url_for('assigned_orders'))
 @app.route('/delivery-map')
 def delivery_map():
     user_id = session.get('user_id')
@@ -975,34 +1003,55 @@ from models import db, User, Order, DeliveryPayment
 
 @app.route('/delivery-income')
 def delivery_income():
+    # Retrieve user_id from session and check if user exists
     user_id = session.get('user_id')
     user = db.session.get(User, user_id)
     
+    # If user is not found or the user is not a 'delivery_man', redirect to login
     if not user or user.role != 'delivery_man':
         return redirect(url_for('login'))
-
+    
+    # Get today's date
     today = datetime.now().date()
+    
+    # Calculate the start of the current month and week
     month_start = datetime(today.year, today.month, 1).date()
-    week_start = today - timedelta(days=today.weekday())
-
-    # 🟢 MOVE THIS BLOCK TO THE TOP BEFORE USING IT
+    week_start = today - timedelta(days=today.weekday())  # Monday of this week
+    
+    # Get completed orders for different time periods
+    monthly_orders = Order.query.filter(
+        Order.delivery_man_id == user_id,
+        Order.status == 'Delivered',
+        Order.delivery_date >= month_start
+    ).all()
+    
+    weekly_orders = Order.query.filter(
+        Order.delivery_man_id == user_id,
+        Order.status == 'Delivered',
+        Order.delivery_date >= week_start
+    ).all()
+    
+    daily_orders = Order.query.filter(
+        Order.delivery_man_id == user_id,
+        Order.status == 'Delivered',
+        Order.delivery_date == today
+    ).all()
+    
+    # Calculate income
+    monthly_income = sum(order.total_amount for order in monthly_orders)
+    weekly_income = sum(order.total_amount for order in weekly_orders)
+    daily_income = sum(order.total_amount for order in daily_orders)
+    
+    # Get payment history for this delivery man
     payments = DeliveryPayment.query.filter_by(delivery_man_id=user_id).order_by(DeliveryPayment.payment_date.desc()).all()
-
-    # ✅ FIXED income calculations (use .date() to match against date objects)
-    monthly_income = sum(payment.amount for payment in payments if payment.payment_date.date() >= month_start)
-    weekly_income = sum(payment.amount for payment in payments if payment.payment_date.date() >= week_start)
-    daily_income = sum(payment.amount for payment in payments if payment.payment_date.date() == today)
-
-    monthly_deliveries = len([p for p in payments if p.payment_date.date() >= month_start])
-    weekly_deliveries = len([p for p in payments if p.payment_date.date() >= week_start])
-    daily_deliveries = len([p for p in payments if p.payment_date.date() == today])
-
+    
+    # Create chart data for the template
     chart_data = {
         'weekly': {
             'labels': [(today - timedelta(days=i)).strftime('%a') for i in range(6, -1, -1)],
             'datasets': [{
                 'label': 'Daily Income',
-                'data': [0] * 7,
+                'data': [0] * 7,  # Placeholder data - you would calculate real values
                 'borderColor': 'rgb(75, 192, 192)',
                 'tension': 0.1
             }]
@@ -1011,7 +1060,7 @@ def delivery_income():
             'labels': [(today - timedelta(days=i)).strftime('%d %b') for i in range(29, -1, -1)],
             'datasets': [{
                 'label': 'Daily Income',
-                'data': [0] * 30,
+                'data': [0] * 30,  # Placeholder data
                 'borderColor': 'rgb(75, 192, 192)',
                 'tension': 0.1
             }]
@@ -1020,24 +1069,24 @@ def delivery_income():
             'labels': [(today.replace(day=1) - timedelta(days=i*30)).strftime('%b %Y') for i in range(11, -1, -1)],
             'datasets': [{
                 'label': 'Monthly Income',
-                'data': [0] * 12,
+                'data': [0] * 12,  # Placeholder data
                 'borderColor': 'rgb(75, 192, 192)',
                 'tension': 0.1
             }]
         }
     }
-
+    
+    # Pass all calculated values to the template
     return render_template('delivery_income.html', 
                            user=user, 
                            monthly_income=monthly_income,
-                           monthly_deliveries=monthly_deliveries,
+                           monthly_deliveries=len(monthly_orders),
                            weekly_income=weekly_income,
-                           weekly_deliveries=weekly_deliveries,
+                           weekly_deliveries=len(weekly_orders),
                            daily_income=daily_income,
-                           daily_deliveries=daily_deliveries,
+                           daily_deliveries=len(daily_orders),
                            payments=payments,
-                           chart_data=chart_data)
-
+                           chart_data=chart_data)  # Add chart_data here
 
 @app.route('/view-report/<int:report_id>')
 def view_report(report_id):
@@ -1421,6 +1470,22 @@ def vaccination_schedule():
     return render_template('admin_manage_vaccinations.html', user=user, vaccinations=vaccinations, batches=batches)
 
 @app.route('/poultry-stock')
+# def poultry_stock():
+#     user_id = session.get('user_id')
+#     user = db.session.get(User, user_id)
+
+#     if not user or user.role != 'manager':
+#         return redirect(url_for('login'))
+
+#     # ✅ Sort batches by batch_id (i.e., batch name) in ascending order
+#     poultry_batches = PoultryBatch.query.order_by(PoultryBatch.batch_id.asc()).all()
+
+#     # ✅ Pass today's date for age calculation
+#     from datetime import datetime
+#     today = datetime.now().date()
+
+#     return render_template('poultry_stock.html', user=user, poultry_batches=poultry_batches, today=today)
+@app.route('/poultry-stock')
 def poultry_stock():
     user_id = session.get('user_id')
     user = db.session.get(User, user_id)
@@ -1428,14 +1493,40 @@ def poultry_stock():
     if not user or user.role != 'manager':
         return redirect(url_for('login'))
 
-    # ✅ Sort batches by batch_id (i.e., batch name) in ascending order
-    poultry_batches = PoultryBatch.query.order_by(PoultryBatch.batch_id.asc()).all()
+    # Existing batch filter
+    search = request.args.get('search', '').strip()
+    poultry_batches = PoultryBatch.query.filter(
+        (PoultryBatch.batch_id.ilike(f"%{search}%")) |
+        (PoultryBatch.bird_type.ilike(f"%{search}%")) |
+        (db.cast(PoultryBatch.arrival_date, db.String).ilike(f"%{search}%")) |
+        (PoultryBatch.status.ilike(f"%{search}%"))
+    ).order_by(PoultryBatch.created_at.desc()).limit(5).all() if search else PoultryBatch.query.order_by(PoultryBatch.created_at.desc()).limit(5).all()
 
-    # ✅ Pass today's date for age calculation
-    from datetime import datetime
+    # Production filter
+    prod_search = request.args.get('prod_search', '').strip()
+    productions = Production.query.join(Batch).filter(
+        (Batch.batch_name.ilike(f"%{prod_search}%")) |
+        (db.cast(Production.production_date, db.String).ilike(f"%{prod_search}%")) |
+        (db.cast(Production.egg_count, db.String).ilike(f"%{prod_search}%")) |
+        (db.cast(Production.meat_weight_kg, db.String).ilike(f"%{prod_search}%"))
+    ).order_by(Production.production_date.desc()).all() if prod_search else Production.query.order_by(Production.production_date.desc()).limit(5).all()
+
+    # 🆕 Feed filter
+    feed_search = request.args.get('feed_search', '').strip()
+    feed_logs = FeedLog.query.join(Batch).filter(
+        (db.cast(FeedLog.id, db.String).ilike(f"%{feed_search}%")) |
+        (FeedLog.feed_type.ilike(f"%{feed_search}%")) |
+        (Batch.batch_name.ilike(f"%{feed_search}%"))
+    ).order_by(FeedLog.log_date.desc()).all() if feed_search else FeedLog.query.order_by(FeedLog.log_date.desc()).limit(5).all()
+
     today = datetime.now().date()
-
-    return render_template('poultry_stock.html', user=user, poultry_batches=poultry_batches, today=today)
+    return render_template('poultry_stock.html', user=user, today=today,
+                           poultry_batches=poultry_batches,
+                           productions=productions,
+                           feed_logs=feed_logs,
+                           search=search,
+                           prod_search=prod_search,
+                           feed_search=feed_search)
 
 
 @app.route('/shop')
@@ -1553,13 +1644,9 @@ def view_cart():
         return redirect(url_for('login'))
     
     cart = session.get('cart', [])
-    product_total = sum(item['price'] * item['quantity'] for item in cart)
-    delivery_charge = 100
-    total = product_total + delivery_charge
-
+    total = sum(item['price'] * item['quantity'] for item in cart)
     
-    return render_template('cart.html', user=user, cart=cart, total=total, product_total=product_total, delivery_charge=delivery_charge)
-
+    return render_template('cart.html', user=user, cart=cart, total=total)
 
 # Add this route to update cart quantities
 @app.route('/update-cart/<int:product_id>', methods=['POST'])
@@ -1602,10 +1689,7 @@ def checkout():
         flash('Your cart is empty', 'warning')
         return redirect(url_for('shop'))
     
-    product_total = sum(item['price'] * item['quantity'] for item in cart)
-    delivery_charge = 100
-    total = product_total + delivery_charge
-
+    total = sum(item['price'] * item['quantity'] for item in cart)
     
     if request.method == 'POST':
         shipping_address = request.form.get('shipping_address')
@@ -1645,11 +1729,11 @@ def checkout():
         session.pop('cart', None)
         
         flash('Order placed successfully!', 'success')
-        
-        return redirect(url_for('customer_dashboard')) 
-    
-    return render_template('checkout.html', user=user, cart=cart, total=total, product_total=product_total, delivery_charge=delivery_charge)
+        # return redirect(url_for('order_confirmation', order_id=new_order.id))
+        return redirect(url_for('track_customer_orders'))
 
+    
+    return render_template('checkout.html', user=user, cart=cart, total=total)
 
 # Add this route to debug the cart
 @app.route('/debug-cart')
@@ -1744,8 +1828,6 @@ def delivery_update_order_status(order_id):
         return redirect(url_for('assigned_orders'))
 
     return render_template('update_order_status.html', user=user, order=order)
-
-
 
 #====================================== 22nd April Arzoo added
 

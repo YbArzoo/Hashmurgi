@@ -94,6 +94,7 @@ class DeliveryIssue(db.Model):
     # Relationships
     order = db.relationship('Order', backref='issues')
     reporter = db.relationship('User', backref='reported_issues')
+
 class DeliveryPayment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     delivery_man_id = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -104,21 +105,6 @@ class DeliveryPayment(db.Model):
     payment_date = db.Column(db.DateTime, default=datetime.utcnow)
 
     delivery_man = db.relationship('User', backref='payments')
-
-    
-    
-
-# class Batch(db.Model):
-#     id = db.Column(db.Integer, primary_key=True)
-#     batch_name = db.Column(db.String(100), nullable=False)
-#     bird_type = db.Column(db.String(50), nullable=False)
-#     quantity = db.Column(db.Integer, nullable=False)
-#     arrival_date = db.Column(db.Date, nullable=False)
-#     notes = db.Column(db.Text, nullable=True)
-#     added_by = db.Column(db.Integer, db.ForeignKey('user.id'))  # Optional: track admin who added it
-
-#     def __repr__(self):
-#         return f"<Batch {self.batch_name}>"
     
 class Batch(db.Model):
     id = db.Column(db.Integer, primary_key=True)

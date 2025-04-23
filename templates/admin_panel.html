@@ -19,9 +19,9 @@
         <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-blue-500">Profile Management</a>
         <a href="{{ url_for('add_product') }}" class="block text-gray-700 hover:text-blue-500">Add Product</a>
         <a href="{{ url_for('manage_batches') }}" class="block text-gray-700 hover:text-blue-500">Manage Batches</a>
-        <a href="{{ url_for('manage_vaccinations') }}" class="block text-gray-700 hover:text-blue-500">Vaccination Schedule</a>
+        <!-- <a href="{{ url_for('manage_vaccinations') }}" class="block text-gray-700 hover:text-blue-500">Vaccination Schedule</a>
         <a href="{{ url_for('manage_production') }}" class="block text-gray-700 hover:text-blue-500">Log Egg & Meat Production</a>
-        <a href="{{ url_for('manage_feed_resources') }}" class="block text-gray-700 hover:text-blue-500"> Feed & Resource Management</a>
+        <a href="{{ url_for('manage_feed_resources') }}" class="block text-gray-700 hover:text-blue-500"> Feed & Resource Management</a> -->
         <a href="{{ url_for('admin_reported_issues') }}" class="block text-gray-700 hover:text-blue-500">
           Reported Issues
         <a href="{{ url_for('record_sales') }}" class="block text-gray-700 hover:text-blue-500">
@@ -71,16 +71,10 @@
 
       <!-- Project Tasks Section -->
       <section class="bg-white p-6 rounded-lg shadow mb-6">
-        <div class="mb-4">
-          <a href="{{ url_for('manage_vaccinations') }}" class="inline-block bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
-          Manage Vaccination Schedule
-          </a>
-          <a href="{{ url_for('manage_production') }}" class="inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-            Log Egg & Meat Production
-          </a>
-          <a href="{{ url_for('manage_feed_resources') }}" class="inline-block bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
-            Manage Feed & Resource Logs
-          </a>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <a href="{{ url_for('manage_vaccinations') }}" class="bg-purple-500 text-white px-8 py-4 rounded hover:bg-blue-600 text-center">Manage Vaccination Schedule</a>
+          <a href="{{ url_for('manage_production') }}" class="bg-green-500 text-white px-8 py-4 rounded hover:bg-blue-600 text-center">Log Egg & Meat Production</a>
+          <a href="{{ url_for('manage_feed_resources') }}" class="bg-yellow-500 text-white px-8 py-4 rounded hover:bg-blue-600 text-center">Manage Feed & Resource Logs</a>
         </div>
       </section>
 
