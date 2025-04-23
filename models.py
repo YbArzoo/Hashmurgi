@@ -97,13 +97,14 @@ class DeliveryIssue(db.Model):
 class DeliveryPayment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     delivery_man_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    order_id = db.Column(db.Integer, db.ForeignKey('order.id'))  # ✅ Add this line
     amount = db.Column(db.Float)
-    method = db.Column(db.String(50))  # Bank Transfer, Mobile Banking, Cash, etc.
-    status = db.Column(db.String(20), default='Pending')  # Pending, Completed
+    method = db.Column(db.String(50))
+    status = db.Column(db.String(20), default='Pending')
     payment_date = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # Relationship
+
     delivery_man = db.relationship('User', backref='payments')
+
     
     
 

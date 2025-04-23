@@ -1702,7 +1702,6 @@ def delivery_update_order_status(order_id):
     
     order = Order.query.get_or_404(order_id)
     
-    # Ensure this order is assigned to the current delivery person
     if order.delivery_man_id != user_id:
         flash('You are not authorized to update this order', 'danger')
         return redirect(url_for('assigned_orders'))
@@ -1710,7 +1709,7 @@ def delivery_update_order_status(order_id):
     if request.method == 'POST':
         new_status = request.form.get('status')
         notes = request.form.get('notes', '')
-        
+
         print(f"DEBUG: Updating order {order_id} status to {new_status}")
         
         order.status = new_status
@@ -1718,13 +1717,13 @@ def delivery_update_order_status(order_id):
         if new_status == 'Delivered':
             order.delivery_date = datetime.utcnow()
 
-            # ✅ Check for existing payment before inserting
             existing_payment = DeliveryPayment.query.filter_by(
                 delivery_man_id=user_id,
                 order_id=order.id
             ).first()
 
             if not existing_payment:
+                print(f"✅ Creating payment for Order #{order.id} by Delivery Man #{user_id}")
                 payment = DeliveryPayment(
                     delivery_man_id=user_id,
                     order_id=order.id,
@@ -1734,15 +1733,18 @@ def delivery_update_order_status(order_id):
                     payment_date=datetime.utcnow()
                 )
                 db.session.add(payment)
-                print(f"Payment created for Order #{order.id}")
+                print("✅ Payment prepared for commit.")
             else:
-                print(f"Payment already exists for Order #{order.id}")
+                print(f"⚠️ Payment already exists for Order #{order.id}")
 
         db.session.commit()
+        print(f"✅ DB committed for order #{order.id} update.")
+        
         flash('Order status updated successfully!', 'success')
         return redirect(url_for('assigned_orders'))
 
     return render_template('update_order_status.html', user=user, order=order)
+
 
 
 #====================================== 22nd April Arzoo added
