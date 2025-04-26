@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Income Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="flex h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white shadow-md px-4 py-6">
+      <h1 class="text-2xl font-bold text-green-600 mb-6">Admin Panel</h1>
+      <nav class="space-y-4">
+        <a href="{{ url_for('admin_panel') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
+        <a href="{{ url_for('admin_income') }}" class="block text-green-600 font-semibold">Income Overview</a>
+        <a href="{{ url_for('record_sales') }}" class="block text-gray-700 hover:text-green-500">Record Sales</a>
+        <a href="{{ url_for('manage_orders') }}" class="block text-gray-700 hover:text-green-500">Manage Orders</a>
+        <!-- Add more links as required -->
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6 overflow-y-auto">
+      <header class="mb-6">
+        <h2 class="text-3xl font-semibold text-gray-800">Admin Income Dashboard</h2>
+        <p class="text-gray-500">Track income from sales and payments</p>
+      </header>
+
+      <!-- Income Overview Section -->
+      <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-lg font-semibold text-gray-700 mb-2">This Month</h3>
+          <p class="text-3xl font-bold text-green-600">৳{{ monthly_income }}</p>
+          <p class="text-sm text-gray-500 mt-1">From {{ monthly_deliveries }} sales</p>
+        </div>
+        
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-lg font-semibold text-gray-700 mb-2">This Week</h3>
+          <p class="text-3xl font-bold text-green-600">৳{{ weekly_income }}</p>
+          <p class="text-sm text-gray-500 mt-1">From {{ weekly_deliveries }} sales</p>
+        </div>
+        
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-lg font-semibold text-gray-700 mb-2">Today</h3>
+          <p class="text-3xl font-bold text-green-600">৳{{ daily_income }}</p>
+          <p class="text-sm text-gray-500 mt-1">From {{ daily_deliveries }} sales</p>
+        </div>
+      </section>
+
+      <!-- Payment History Table -->
+      <section class="bg-white p-6 rounded-lg shadow mb-6">
+        <h3 class="text-xl font-semibold text-gray-800 mb-4">Payments History</h3>
+        <table class="min-w-full bg-white">
+          <thead>
+            <tr class="bg-gray-100 text-gray-600">
+              <th class="py-3 px-6">Payment ID</th>
+              <th class="py-3 px-6">Delivery Man</th>
+              <th class="py-3 px-6">Amount</th>
+              <th class="py-3 px-6">Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for payment in delivery_payments %}
+              <tr class="border-t">
+                <td class="py-3 px-6">{{ payment.id }}</td>
+                <td class="py-3 px-6">{{ payment.delivery_man.name }}</td>
+                <td class="py-3 px-6">৳{{ payment.amount }}</td>
+                <td class="py-3 px-6">{{ payment.payment_date.strftime('%Y-%m-%d') }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Income Trends (Chart) -->
+      <section class="bg-white p-6 rounded-lg shadow mb-6">
+        <h3 class="text-xl font-semibold text-gray-800 mb-4">Income Trends</h3>
+        <div class="flex justify-end mb-4">
+          <select id="chart-period" class="border rounded p-2 text-sm">
+            <option value="week">Last 7 Days</option>
+            <option value="month">Last 30 Days</option>
+            <option value="year">Last 12 Months</option>
+          </select>
+        </div>
+        <div>
+          <canvas id="incomeChart" height="300"></canvas>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    const chartData = {{ chart_data|tojson|safe }};
+    
+    const ctx = document.getElementById('incomeChart').getContext('2d');
+    let incomeChart = new Chart(ctx, {
+      type: 'line',
+      data: chartData.weekly,
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: 'top' },
+          title: { display: true, text: 'Income - Last 7 Days' }
+        },
+        scales: {
+          y: { beginAtZero: true, title: { display: true, text: 'Income (৳)' } }
+        }
+      }
+    });
+
+    document.getElementById('chart-period').addEventListener('change', function() {
+      const period = this.value;
+
+      if (period === 'week') {
+        incomeChart.data = chartData.weekly;
+        incomeChart.options.plugins.title.text = 'Income - Last 7 Days';
+      } else if (period === 'month') {
+        incomeChart.data = chartData.monthly;
+        incomeChart.options.plugins.title.text = 'Income - Last 30 Days';
+      } else if (period === 'year') {
+        incomeChart.data = chartData.yearly;
+        incomeChart.options.plugins.title.text = 'Income - Last 12 Months';
+      }
+
+      incomeChart.update();
+    });
+  </script>
+</body>
+</html>

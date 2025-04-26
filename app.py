@@ -1,3 +1,4 @@
+import requests
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, redirect, url_for
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -46,6 +47,18 @@ with app.app_context():
     db.create_all()
 
 
+#LANGUAGE API
+from flask import session, redirect, url_for
+
+@app.route('/set_language/<language>')
+def set_language(language):
+    if language in ['en', 'bn']:  # Only allow English ('en') and Bangla ('bn')
+        session['language'] = language
+    return redirect(url_for('home'))  # Redirect back to home page after language change
+
+
+
+
 
 
 # Home page route
@@ -53,6 +66,8 @@ with app.app_context():
 def home():
     user_id = session.get('user_id')
     user = db.session.get(User, user_id) if user_id else None
+    #title = translate_to_bangla("Welcome to HashMurgi")
+    #description = translate_to_bangla("Find the best poultry products here.")
     return render_template('index.html', user=user)
 
 
@@ -1807,7 +1822,7 @@ def delivery_update_order_status(order_id):
             ).first()
 
             if not existing_payment:
-                print(f"✅ Creating payment for Order #{order.id} by Delivery Man #{user_id}")
+                print(f"Creating payment for Order #{order.id} by Delivery Man #{user_id}")
                 payment = DeliveryPayment(
                     delivery_man_id=user_id,
                     order_id=order.id,
@@ -1817,19 +1832,94 @@ def delivery_update_order_status(order_id):
                     payment_date=datetime.utcnow()
                 )
                 db.session.add(payment)
-                print("✅ Payment prepared for commit.")
+                print("Payment prepared for commit.")
             else:
-                print(f"⚠️ Payment already exists for Order #{order.id}")
+                print(f"Payment already exists for Order #{order.id}")
 
         db.session.commit()
-        print(f"✅ DB committed for order #{order.id} update.")
+        print(f"DB committed for order #{order.id} update.")
         
         flash('Order status updated successfully!', 'success')
         return redirect(url_for('assigned_orders'))
 
     return render_template('update_order_status.html', user=user, order=order)
 
+<<<<<<< Updated upstream
 #====================================== 22nd April Arzoo added
+=======
+
+
+#====================================== 23rd April Arzoo added
+
+@app.route('/admin/income')
+def admin_income():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    user = User.query.get(session['user_id'])
+    if not user or user.role != 'admin':
+        return redirect(url_for('login'))
+
+    today = datetime.now().date()
+    week_start = today - timedelta(days=today.weekday())
+    month_start = today.replace(day=1)
+
+    # Fetch Sales and Payments for admin income
+    sales = Sale.query.all()
+    daily_income = sum(s.total_amount for s in sales if s.sale_date == today)
+    weekly_income = sum(s.total_amount for s in sales if s.sale_date >= week_start)
+    monthly_income = sum(s.total_amount for s in sales if s.sale_date >= month_start)
+
+    # For delivery man income
+    delivery_payments = DeliveryPayment.query.order_by(DeliveryPayment.payment_date.desc()).all()
+
+    # Calculate monthly, weekly, and daily payment amounts for delivery men
+    monthly_deliveries = len([p for p in delivery_payments if p.payment_date.date() >= month_start])
+    weekly_deliveries = len([p for p in delivery_payments if p.payment_date.date() >= week_start])
+    daily_deliveries = len([p for p in delivery_payments if p.payment_date.date() == today])
+
+    # Create chart data in a format that is JSON serializable
+    chart_data = {
+        'weekly': {
+            'labels': [(today - timedelta(days=i)).strftime('%a') for i in range(6, -1, -1)],
+            'datasets': [{
+                'label': 'Daily Income',
+                'data': [daily_income] * 7,  # Replace with actual weekly data if needed
+                'borderColor': 'rgb(75, 192, 192)',
+                'tension': 0.1
+            }]
+        },
+        'monthly': {
+            'labels': [(today - timedelta(days=i)).strftime('%d %b') for i in range(29, -1, -1)],
+            'datasets': [{
+                'label': 'Daily Income',
+                'data': [daily_income] * 30,  # Replace with actual monthly data if needed
+                'borderColor': 'rgb(75, 192, 192)',
+                'tension': 0.1
+            }]
+        },
+        'yearly': {
+            'labels': [(today.replace(day=1) - timedelta(days=i*30)).strftime('%b %Y') for i in range(11, -1, -1)],
+            'datasets': [{
+                'label': 'Monthly Income',
+                'data': [monthly_income] * 12,  # Replace with actual yearly data if needed
+                'borderColor': 'rgb(75, 192, 192)',
+                'tension': 0.1
+            }]
+        }
+    }
+
+    return render_template('admin_income.html', 
+                           user=user, 
+                           daily_income=daily_income,
+                           weekly_income=weekly_income,
+                           monthly_income=monthly_income,
+                           delivery_payments=delivery_payments,
+                           daily_deliveries=daily_deliveries,
+                           weekly_deliveries=weekly_deliveries,
+                           monthly_deliveries=monthly_deliveries,
+                           chart_data=chart_data)
+>>>>>>> Stashed changes
 
 
 
