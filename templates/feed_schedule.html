@@ -9,37 +9,17 @@
 <body class="bg-gray-100 min-h-screen">
   <div class="flex h-screen">
     <!-- Sidebar -->
-    <!-- Sidebar -->
-<aside class="w-64 bg-white shadow-md px-4 py-6">
-  <h1 class="text-2xl font-bold text-green-600 mb-6">Manager Panel</h1>
-  <h1 class="text-2xl font-bold text-green-600 mb-6">
-    {% if user.role == 'manager' %}
-        <!-- Manager sidebar links -->
-    {% else %}
-         <!-- Farmer sidebar links -->
-    {% endif %}
-
-  </h1>
-  <nav class="space-y-4">
-    {% if user.role == 'manager' %}
-      <a href="{{ url_for('manager_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
-      <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile</a>
-      <a href="{{ url_for('feed_resources') }}" class="block text-gray-700 hover:text-green-500">Feed Resources</a>
-      <a href="{{ url_for('production_record') }}" class="block text-gray-700 hover:text-green-500">Production Records</a>
-      <a href="{{ url_for('vaccination_schedule') }}" class="block text-gray-700 hover:text-green-500">Vaccination Schedule</a>
-      <a href="{{ url_for('manage_orders') }}" class="block text-gray-700 hover:text-green-500">Manage Orders</a>
-      <a href="{{ url_for('logout') }}" class="block text-red-600 hover:text-red-800">Logout</a>
-    {% else %}
-      <a href="{{ url_for('farmer_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
-      <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile</a>
-      <a href="{{ url_for('daily_tasks') }}" class="block text-gray-700 hover:text-green-500">Daily Tasks</a>
-      <a href="{{ url_for('poultry_status_farmer') }}" class="block text-gray-700 hover:text-green-500">Poultry Status</a>
-      <a href="{{ url_for('feed_schedule') }}" class="block text-green-600 font-semibold">Feed Schedule</a>
-      <a href="{{ url_for('logout') }}" class="block text-gray-700 hover:text-red-500">Logout</a>
-    {% endif %}
-  </nav>
-</aside>
-
+    <aside class="w-64 bg-white shadow-md px-4 py-6">
+      <h1 class="text-2xl font-bold text-green-600 mb-6">Farmer Panel</h1>
+      <nav class="space-y-4">
+        <a href="{{ url_for('farmer_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
+        <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile</a>
+        <a href="{{ url_for('daily_tasks') }}" class="block text-gray-700 hover:text-green-500">Daily Tasks</a>
+        <a href="{{ url_for('poultry_status_farmer') }}" class="block text-gray-700 hover:text-green-500">Poultry Status</a>
+        <a href="{{ url_for('feed_schedule') }}" class="block text-green-600 font-semibold">Feed Schedule</a>
+        <a href="{{ url_for('logout') }}" class="block text-gray-700 hover:text-red-500">Logout</a>
+      </nav>
+    </aside>
 
     <!-- Main Content -->
     <main class="flex-1 p-6 overflow-y-auto">
@@ -47,6 +27,17 @@
         <h2 class="text-3xl font-semibold text-gray-800">Feed Schedule</h2>
         <p class="text-gray-500">Manage feeding times and track feed consumption</p>
       </header>
+
+      <!-- Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="mb-4 p-4 rounded-md {% if category == 'success' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
 
       <!-- Today's Feeding Schedule -->
       <section class="bg-white p-6 rounded-lg shadow mb-6">
@@ -64,97 +55,117 @@
               </tr>
             </thead>
             <tbody>
-              <!-- Morning Feeding -->
-              <tr class="border-b">
-                <td class="py-2 px-4">6:00 AM</td>
-                <td class="py-2 px-4">Batch A123 (Layers)</td>
-                <td class="py-2 px-4">Layer Feed</td>
-                <td class="py-2 px-4">25 kg</td>
-                <td class="py-2 px-4"><span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Completed</span></td>
-                <td class="py-2 px-4">
-                  <button class="text-blue-500 hover:text-blue-700">View Details</button>
-                </td>
-              </tr>
-              <!-- Noon Feeding -->
-              <tr class="border-b">
-                <td class="py-2 px-4">12:00 PM</td>
-                <td class="py-2 px-4">Batch B456 (Broilers)</td>
-                <td class="py-2 px-4">Broiler Feed</td>
-                <td class="py-2 px-4">20 kg</td>
-                <td class="py-2 px-4"><span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">Pending</span></td>
-                <td class="py-2 px-4">
-                  <button class="text-green-500 hover:text-green-700 mr-2">Mark Complete</button>
-                  <button class="text-blue-500 hover:text-blue-700">Edit</button>
-                </td>
-              </tr>
-              <!-- Evening Feeding -->
-              <tr class="border-b">
-                <td class="py-2 px-4">5:00 PM</td>
-                <td class="py-2 px-4">All Batches</td>
-                <td class="py-2 px-4">Mixed Feed</td>
-                <td class="py-2 px-4">40 kg</td>
-                <td class="py-2 px-4"><span class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs">Scheduled</span></td>
-                <td class="py-2 px-4">
-                  <button class="text-blue-500 hover:text-blue-700">Edit</button>
-                </td>
-              </tr>
+              {% if today_feedings %}
+                {% for feeding in today_feedings %}
+                  <tr class="border-b">
+                    <td class="py-2 px-4">{% if feeding.time %}{{ feeding.time.strftime('%I:%M %p') }}{% else %}N/A{% endif %}</td>
+                    <td class="py-2 px-4">{{ feeding.batch_id }}</td>
+                    <td class="py-2 px-4">{{ feeding.feed_type|capitalize if feeding.feed_type else 'N/A' }}</td>
+                    <td class="py-2 px-4">{{ feeding.quantity }} kg</td>
+                    <td class="py-2 px-4">
+                      <span class="{% if feeding.status == 'completed' %}bg-green-100 text-green-800{% elif feeding.status == 'pending' %}bg-yellow-100 text-yellow-800{% else %}bg-gray-100 text-gray-800{% endif %} px-2 py-1 rounded text-xs">
+                        {{ feeding.status|capitalize }}
+                      </span>
+                    </td>
+                    <td class="py-2 px-4">
+                      {% if feeding.status != 'completed' %}
+                        <form action="{{ url_for('feed_schedule') }}" method="POST" class="inline">
+                          <input type="hidden" name="feeding_id" value="{{ feeding.id }}">
+                          <input type="hidden" name="action" value="complete">
+                          <button type="submit" class="text-green-500 hover:text-green-700">Mark Complete</button>
+                        </form>
+                      {% else %}
+                        <span class="text-gray-400">Completed</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="6" class="py-4 text-center text-gray-500">No feedings scheduled for today.</td>
+                </tr>
+              {% endif %}
             </tbody>
           </table>
         </div>
       </section>
 
-      <!-- Record Feeding Form -->
+      <!-- Upcoming Feeding Schedule -->
       <section class="bg-white p-6 rounded-lg shadow mb-6">
-        <h3 class="text-xl font-bold text-gray-800 mb-4">Record Feeding</h3>
-        <form action="{{ url_for('feed_schedule') }}" method="POST" class="space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label for="feeding_date" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-              <input type="date" id="feeding_date" name="feeding_date" class="w-full p-2 border rounded" value="{{ today_date }}">
-            </div>
-            <div>
-              <label for="feeding_time" class="block text-sm font-medium text-gray-700 mb-1">Time</label>
-              <input type="time" id="feeding_time" name="feeding_time" class="w-full p-2 border rounded">
-            </div>
-            <div>
-              <label for="batch_id" class="block text-sm font-medium text-gray-700 mb-1">Batch</label>
-              <select id="batch_id" name="batch_id" class="w-full p-2 border rounded">
-                <option value="A123">Batch A123 (Layers)</option>
-                <option value="B456">Batch B456 (Broilers)</option>
-                <option value="C789">Batch C789 (Chicks)</option>
-                <option value="all">All Batches</option>
-              </select>
-            </div>
-            <div>
-              <label for="feed_type" class="block text-sm font-medium text-gray-700 mb-1">Feed Type</label>
-              <select id="feed_type" name="feed_type" class="w-full p-2 border rounded">
-                <option value="layer">Layer Feed</option>
-                <option value="broiler">Broiler Feed</option>
-                <option value="chick">Chick Starter</option>
-                <option value="mixed">Mixed Feed</option>
-              </select>
-            </div>
-            <div>
-              <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1">Quantity (kg)</label>
-              <input type="number" id="quantity" name="quantity" class="w-full p-2 border rounded" step="0.1" required>
-            </div>
-            <div>
-              <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-              <select id="status" name="status" class="w-full p-2 border rounded">
-                <option value="completed">Completed</option>
-                <option value="pending">Pending</option>
-                <option value="scheduled">Scheduled</option>
-              </select>
-            </div>
-          </div>
-          <div>
-            <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-            <textarea id="notes" name="notes" rows="2" class="w-full p-2 border rounded" placeholder="Enter any additional details"></textarea>
-          </div>
-          <div class="flex justify-end">
-            <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Record Feeding</button>
-          </div>
-        </form>
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Upcoming Feeding Schedule</h3>
+        <div class="overflow-x-auto">
+          <table class="min-w-full bg-white">
+            <thead>
+              <tr class="bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase">
+                <th class="py-2 px-4 border-b">Date</th>
+                <th class="py-2 px-4 border-b">Time</th>
+                <th class="py-2 px-4 border-b">Batch</th>
+                <th class="py-2 px-4 border-b">Feed Type</th>
+                <th class="py-2 px-4 border-b">Quantity</th>
+                <th class="py-2 px-4 border-b">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if upcoming_feedings %}
+                {% for feeding in upcoming_feedings %}
+                  <tr class="border-b">
+                    <td class="py-2 px-4">{{ feeding.date.strftime('%b %d, %Y') }}</td>
+                    <td class="py-2 px-4">{{ feeding.time.strftime('%I:%M %p') }}</td>
+                    <td class="py-2 px-4">{{ feeding.batch_id }}</td>
+                    <td class="py-2 px-4">{{ feeding.feed_type|capitalize }}</td>
+                    <td class="py-2 px-4">{{ feeding.quantity }} kg</td>
+                    <td class="py-2 px-4">
+                      <span class="{% if feeding.status == 'completed' %}bg-green-100 text-green-800{% elif feeding.status == 'pending' %}bg-yellow-100 text-yellow-800{% else %}bg-gray-100 text-gray-800{% endif %} px-2 py-1 rounded text-xs">
+                        {{ feeding.status|capitalize }}
+                      </span>
+                    </td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="6" class="py-4 text-center text-gray-500">No upcoming feedings scheduled.</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Recent Completed Feedings -->
+      <section class="bg-white p-6 rounded-lg shadow mb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Recently Completed Feedings</h3>
+        <div class="overflow-x-auto">
+          <table class="min-w-full bg-white">
+            <thead>
+              <tr class="bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase">
+                <th class="py-2 px-4 border-b">Date</th>
+                <th class="py-2 px-4 border-b">Time</th>
+                <th class="py-2 px-4 border-b">Batch</th>
+                <th class="py-2 px-4 border-b">Feed Type</th>
+                <th class="py-2 px-4 border-b">Quantity</th>
+                <th class="py-2 px-4 border-b">Completed At</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if completed_feedings %}
+                {% for feeding in completed_feedings %}
+                  <tr class="border-b">
+                    <td class="py-2 px-4">{{ feeding.date.strftime('%b %d, %Y') }}</td>
+                    <td class="py-2 px-4">{{ feeding.time.strftime('%I:%M %p') }}</td>
+                    <td class="py-2 px-4">{{ feeding.batch_id }}</td>
+                    <td class="py-2 px-4">{{ feeding.feed_type|capitalize }}</td>
+                    <td class="py-2 px-4">{{ feeding.quantity }} kg</td>
+                    <td class="py-2 px-4">{% if feeding.completed_at %}{{ feeding.completed_at.strftime('%b %d, %Y, %I:%M %p') }}{% else %}N/A{% endif %}</td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="6" class="py-4 text-center text-gray-500">No completed feedings to display.</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <!-- Feed Inventory -->
@@ -173,40 +184,22 @@
               </tr>
             </thead>
             <tbody>
-              <tr class="border-b">
-                <td class="py-2 px-4">Layer Feed</td>
-                <td class="py-2 px-4">250</td>
-                <td class="py-2 px-4">kg</td>
-                <td class="py-2 px-4">100</td>
-                <td class="py-2 px-4">Apr 10, 2025</td>
-                <td class="py-2 px-4"><span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Adequate</span></td>
-              </tr>
-              <tr class="border-b">
-                <td class="py-2 px-4">Broiler Feed</td>
-                <td class="py-2 px-4">120</td>
-                <td class="py-2 px-4">kg</td>
-                <td class="py-2 px-4">100</td>
-                <td class="py-2 px-4">Apr 8, 2025</td>
-                <td class="py-2 px-4"><span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Adequate</span></td>
-              </tr>
-              <tr class="border-b">
-                <td class="py-2 px-4">Chick Starter</td>
-                <td class="py-2 px-4">50</td>
-                <td class="py-2 px-4">kg</td>
-                <td class="py-2 px-4">75</td>
-                <td class="py-2 px-4">Apr 5, 2025</td>
-                <td class="py-2 px-4"><span class="bg-red-100 text-red-800 px-2 py-1 rounded text-xs">Low Stock</span></td>
-              </tr>
+              {% for item in feed_inventory %}
+                <tr class="border-b">
+                  <td class="py-2 px-4">{{ item.feed_type }}</td>
+                  <td class="py-2 px-4">{{ item.stock }}</td>
+                  <td class="py-2 px-4">{{ item.unit }}</td>
+                  <td class="py-2 px-4">{{ item.threshold }}</td>
+                  <td class="py-2 px-4">{{ item.last_restocked }}</td>
+                  <td class="py-2 px-4">
+                    <span class="{% if item.status == 'Adequate' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %} px-2 py-1 rounded text-xs">
+                      {{ item.status }}
+                    </span>
+                  </td>
+                </tr>
+              {% endfor %}
             </tbody>
           </table>
-        </div>
-      </section>
-
-      <!-- Weekly Consumption Chart -->
-      <section class="bg-white p-6 rounded-lg shadow">
-        <h3 class="text-xl font-bold text-gray-800 mb-4">Feed Consumption Trends</h3>
-        <div class="h-64 bg-gray-100 flex items-center justify-center">
-          <p class="text-gray-500">Feed consumption chart will be displayed here</p>
         </div>
       </section>
     </main>

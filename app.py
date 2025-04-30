@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from models import db, User, Product, Order, OrderItem, DeliveryIssue, DeliveryPayment, Batch, Vaccination, Production, FeedLog, Sale, Invoice, PriorityLevel, PoultryBatch
+from models import db, User, Product, Order, OrderItem, DeliveryIssue, DeliveryPayment, Batch, Vaccination, Production, FeedLog, Sale, Invoice, PriorityLevel, PoultryBatch, HealthCheck, Notification, Task, Feeding
 from config import Config
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
@@ -1279,72 +1279,319 @@ def forgot_password():
 
 @app.route('/daily-tasks', methods=['GET', 'POST'])
 def daily_tasks():
-    user_id = session.get('user_id')
-    user = db.session.get(User, user_id)
+    try:
+        # Get user information and validate
+        user_id = session.get('user_id')
+        if not user_id:
+            print(f"[WARNING] No user_id in session, redirecting to login")
 
-    
-    if not user or user.role != 'farmer':
-        return redirect(url_for('login'))
-    
-    # Get today's date for the form
-    from datetime import datetime
-    today_date = datetime.now().strftime('%Y-%m-%d')
-    
-    if request.method == 'POST':
-        # In a real application, you would save the task to the database
-        flash('Task added successfully!', 'success')
-        return redirect(url_for('daily_tasks'))
-    
-    # In a real application, you would fetch tasks from the database
-    return render_template('daily_tasks.html', user=user, today_date=today_date)
+            return redirect(url_for('login'))
+            
+        user = db.session.get(User, user_id)
+        if not user or user.role != 'farmer':
+            print(f"[WARNING] No user_id in session, redirecting to login")
+
+            return redirect(url_for('login'))
+        
+        # Handle POST request for completing tasks
+        if request.method == 'POST':
+            task_id = request.form.get('task_id')
+            action = request.form.get('action')
+            
+            if task_id and action == 'complete':
+                try:
+                    task = Task.query.get(task_id)
+                    
+                    if task and task.assigned_to == user_id:
+                        task.status = 'completed'
+                        task.completed_at = datetime.utcnow()
+                        db.session.commit()
+                        flash('Task marked as completed!', 'success')
+                    else:
+                        print(f"[WARNING] No user_id in session, redirecting to login")
+
+                        flash('Task not found or not assigned to you', 'error')
+                except Exception as e:
+                    print(f"Error fetching tasks: {str(e)}")
+                    db.session.rollback()
+                    flash('Error marking task as completed. Please try again.', 'error')
+            
+            return redirect(url_for('daily_tasks'))
+        
+        # Get today's date for the form
+        today_date = datetime.now().strftime('%Y-%m-%d')
+        today = datetime.now().date()
+        
+        # Get tasks with proper error handling
+        try:
+            # Today's tasks
+            today_tasks = Task.query.filter(
+                Task.assigned_to == user_id,
+                Task.due_date == today
+            ).order_by(Task.priority.desc()).all()
+            
+            # Tomorrow's tasks
+            tomorrow = today + timedelta(days=1)
+            tomorrow_tasks = Task.query.filter(
+                Task.assigned_to == user_id,
+                Task.due_date == tomorrow
+            ).order_by(Task.priority.desc()).all()
+            
+            # This week's tasks (excluding today and tomorrow)
+            week_end = today + timedelta(days=7)
+            week_tasks = Task.query.filter(
+                Task.assigned_to == user_id,
+                Task.due_date > tomorrow,
+                Task.due_date <= week_end
+            ).order_by(Task.due_date.asc(), Task.priority.desc()).all()
+            
+            print(f"[DEBUG] Retrieved tasks for user {user_id}: today={len(today_tasks)}, tomorrow={len(tomorrow_tasks)}, week={len(week_tasks)}")
+
+        except Exception as e:
+            print(f"Error fetching tasks: {str(e)}")
+            today_tasks = []
+            tomorrow_tasks = []
+            week_tasks = []
+            flash("Could not load tasks. Please try again later.", "error")
+        
+        return render_template('farmer_daily_tasks.html', 
+                              user=user, 
+                              today_date=today_date,
+                              today_tasks=today_tasks,
+                              tomorrow_tasks=tomorrow_tasks,
+                              week_tasks=week_tasks)
+    except Exception as e:
+        print(f"Error fetching tasks: {str(e)}")
+        flash('An unexpected error occurred. Please try again.', 'error')
+        return redirect(url_for('farmer_dashboard'))
 
 
 @app.route('/poultry-status-farmer', methods=['GET', 'POST'])
 def poultry_status_farmer():
     user_id = session.get('user_id')
     user = db.session.get(User, user_id)
-
     
     if not user or user.role != 'farmer':
         return redirect(url_for('login'))
     
     # Get today's date for the form
-    from datetime import datetime
     today_date = datetime.now().strftime('%Y-%m-%d')
+    
+    # Get available batches for the dropdown
+    batches = PoultryBatch.query.all()
+    
+    # Get recent health checks for this farmer
+    recent_health_checks = HealthCheck.query.filter_by(recorded_by=user_id).order_by(HealthCheck.check_date.desc()).limit(5).all()
     
     if request.method == 'POST':
         form_type = request.form.get('form_type')
         
         if form_type == 'count_update':
             # Handle count update form submission
-            flash('Poultry count updated successfully!', 'success')
+            batch_id = request.form.get('batch_id')
+            new_count = int(request.form.get('new_count'))
+            reason = request.form.get('reason')
+            notes = request.form.get('notes', '')
+            
+            # Get the batch
+            batch = PoultryBatch.query.filter_by(batch_id=batch_id).first()
+            
+            if batch:
+                # Calculate the difference
+                count_difference = new_count - batch.count
+                old_count = batch.count
+                
+                # Update the batch count
+                batch.count = new_count
+                
+                # Create a notification for admins and managers
+                notification_title = f"Poultry Count Updated: {batch_id}"
+                notification_message = f"Count changed from {old_count} to {new_count} ({count_difference:+d}). Reason: {reason}. Notes: {notes}"
+                
+                notification = Notification(
+                    title=notification_title,
+                    message=notification_message,
+                    category='count_update',
+                    priority='high' if abs(count_difference) > 10 else 'normal',
+                    created_by=user_id,
+                    related_batch=batch_id
+                )
+                
+                db.session.add(notification)
+                db.session.commit()
+                flash('Poultry count updated successfully!', 'success')
+            else:
+                flash('Batch not found!', 'danger')
+                
         elif form_type == 'health_check':
             # Handle health check form submission
+            batch_id = request.form.get('health_batch_id')
+            health_status = request.form.get('health_status')
+            feed_consumption = request.form.get('feed_consumption')
+            water_consumption = request.form.get('water_consumption')
+            mortality = int(request.form.get('mortality', 0))
+            health_notes = request.form.get('health_notes', '')
+            check_date = datetime.strptime(request.form.get('health_date'), '%Y-%m-%d').date()
+            
+            # Create a new health check record
+            health_check = HealthCheck(
+                batch_id=batch_id,
+                check_date=check_date,
+                health_status=health_status,
+                feed_consumption=feed_consumption,
+                water_consumption=water_consumption,
+                mortality=mortality,
+                notes=health_notes,
+                recorded_by=user_id
+            )
+            
+            # Create a notification
+            notification_title = f"Health Check: {batch_id}"
+            notification_message = f"Status: {health_status}. Mortality: {mortality}. Notes: {health_notes}"
+            
+            # Set priority based on health status and mortality
+            priority = 'normal'
+            if health_status in ['poor', 'critical'] or mortality > 0:
+                priority = 'high'
+            if health_status == 'critical' or mortality > 5:
+                priority = 'urgent'
+                
+            notification = Notification(
+                title=notification_title,
+                message=notification_message,
+                category='health_check',
+                priority=priority,
+                created_by=user_id,
+                related_batch=batch_id
+            )
+            
+            db.session.add(health_check)
+            db.session.add(notification)
+            db.session.commit()
             flash('Health check recorded successfully!', 'success')
         
         return redirect(url_for('poultry_status_farmer'))
     
-    return render_template('poultry_status_farmer.html', user=user, today_date=today_date)
+    return render_template('poultry_status_farmer.html', 
+                          user=user, 
+                          today_date=today_date,
+                          batches=batches,
+                          recent_health_checks=recent_health_checks)
 
 @app.route('/feed-schedule', methods=['GET', 'POST'])
 def feed_schedule():
-    user_id = session.get('user_id')
-    user = db.session.get(User, user_id)
-
-    
-    if not user or user.role != 'farmer':
-        return redirect(url_for('login'))
-    
-    # Get today's date for the form
-    from datetime import datetime
-    today_date = datetime.now().strftime('%Y-%m-%d')
-    
-    if request.method == 'POST':
-        # In a real application, you would save the feeding record to the database
-        flash('Feeding record added successfully!', 'success')
-        return redirect(url_for('feed_schedule'))
-    
-    return render_template('feed_schedule.html', user=user, today_date=today_date)
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return redirect(url_for('login'))
+            
+        user = db.session.get(User, user_id)
+        if not user or user.role != 'farmer':
+            return redirect(url_for('login'))
+        
+        # Get today's date
+        today = datetime.now().date()
+        
+        if request.method == 'POST':
+            feeding_id = request.form.get('feeding_id')
+            action = request.form.get('action')
+            
+            if feeding_id and action == 'complete':
+                try:
+                    feeding = Feeding.query.get(feeding_id)
+                    
+                    if feeding:
+                        feeding.status = 'completed'
+                        feeding.completed_by = user_id
+                        feeding.completed_at = datetime.utcnow()
+                        
+                        # Create notification for admins and managers
+                        notification_title = f"Feeding Completed: {feeding.batch_id}"
+                        notification_message = f"Feed type: {feeding.feed_type}, Quantity: {feeding.quantity}kg. Completed by {user.name}."
+                        
+                        notification = Notification(
+                            title=notification_title,
+                            message=notification_message,
+                            category='feeding',
+                            priority='normal',
+                            created_by=user_id,
+                            related_batch=feeding.batch_id
+                        )
+                        
+                        db.session.add(notification)
+                        db.session.commit()
+                        flash('Feeding marked as completed!', 'success')
+                except Exception as e:
+                    print(f"Error fetching tasks: {str(e)}")
+                    db.session.rollback()
+                    flash('Error marking feeding as completed. Please try again.', 'error')
+            
+            return redirect(url_for('feed_schedule'))
+        
+        # Get today's feedings with error handling
+        try:
+            today_feedings = Feeding.query.filter(
+                Feeding.date == today
+            ).order_by(Feeding.time.asc()).all()
+        except Exception as e:
+            print(f"Error fetching tasks: {str(e)}")
+            today_feedings = []
+        
+        # Get upcoming feedings with error handling
+        try:
+            upcoming_feedings = Feeding.query.filter(
+                Feeding.date > today
+            ).order_by(Feeding.date.asc(), Feeding.time.asc()).all()
+        except Exception as e:
+            print(f"Error fetching tasks: {str(e)}")
+            upcoming_feedings = []
+        
+        # Get recent completed feedings with error handling
+        try:
+            completed_feedings = Feeding.query.filter(
+                Feeding.status == 'completed'
+            ).order_by(Feeding.completed_at.desc()).limit(5).all()
+        except Exception as e:
+            print(f"Error fetching tasks: {str(e)}")
+            completed_feedings = []
+        
+        # Get feed inventory (you might want to create a separate model for this)
+        feed_inventory = [
+            {"feed_type": "Layer Feed", "stock": 250, "unit": "kg", "threshold": 100, "last_restocked": "Apr 10, 2025", "status": "Adequate"},
+            {"feed_type": "Broiler Feed", "stock": 120, "unit": "kg", "threshold": 100, "last_restocked": "Apr 8, 2025", "status": "Adequate"},
+            {"feed_type": "Chick Starter", "stock": 50, "unit": "kg", "threshold": 75, "last_restocked": "Apr 5, 2025", "status": "Low Stock"}
+        ]
+        
+        # Get unread notifications count
+        try:
+            unread_count = Notification.query.filter(
+                db.and_(
+                    Notification.is_read == False,
+                    db.or_(
+                        Notification.for_user == user_id,
+                        db.and_(
+                            Notification.for_role.like("%farmer%"),
+                            Notification.for_role != None
+                        )
+                    )
+                )
+            ).count()
+        except Exception as e:
+            print(f"Error fetching tasks: {str(e)}")
+            unread_count = 0
+        
+        return render_template('feed_schedule.html', 
+                              user=user, 
+                              today_feedings=today_feedings,
+                              upcoming_feedings=upcoming_feedings,
+                              completed_feedings=completed_feedings,
+                              feed_inventory=feed_inventory,
+                              today_date=today.strftime('%Y-%m-%d'),
+                              unread_count=unread_count)
+    except Exception as e:
+        print(f"Error fetching tasks: {str(e)}")
+        flash('An unexpected error occurred. Please try again.', 'error')
+        return redirect(url_for('farmer_dashboard'))
 
 
 @app.route('/change-password', methods=['GET', 'POST'])
@@ -1557,14 +1804,95 @@ def shop():
 
 @app.route('/farmer-dashboard')
 def farmer_dashboard():
-    user_id = session.get('user_id')
-    user = db.session.get(User, user_id)
+    try:
+        # Get user information
+        user_id = session.get('user_id')
+        if not user_id:
+            return redirect(url_for('login'))
 
+        user = db.session.get(User, user_id)
+        if not user or user.role != 'farmer':
+            return redirect(url_for('login'))
 
-    if not user or user.role != 'farmer':
-        return redirect(url_for('login'))
+        # Initialize variables to avoid "not defined" errors
+        today_tasks = []
+        tomorrow_tasks = []
+        week_tasks = []
 
-    return render_template('farmer_dashboard.html', user=user)
+        # Get today's tasks
+        try:
+            today = datetime.now().date()
+            today_tasks = Task.query.filter(
+                Task.assigned_to == user_id,
+                Task.due_date == today
+            ).order_by(Task.priority.desc()).all()
+        except Exception as e:
+            print(f"Error fetching today's tasks: {str(e)}")
+            flash("Could not load today's tasks.", "error")
+
+        # Get poultry batches
+        try:
+            batches = PoultryBatch.query.all()
+        except Exception as e:
+            print(f"Error fetching poultry batches: {str(e)}")
+            batches = []
+            flash("Could not load poultry batch data.", "error")
+
+        # Get health checks
+        try:
+            health_checks = HealthCheck.query.filter_by(recorded_by=user_id).all()
+        except Exception as e:
+            print(f"Error fetching health checks: {str(e)}")
+            health_checks = []
+
+        # Get recent notifications
+        try:
+            recent_notifications = Notification.query.filter(
+                db.or_(
+                    Notification.for_user == user_id,
+                    db.and_(
+                        Notification.for_role.like("%farmer%"),
+                        Notification.for_role != None
+                    )
+                )
+            ).order_by(Notification.created_at.desc()).limit(5).all()
+        except Exception as e:
+            print(f"Error fetching notifications: {str(e)}")
+            recent_notifications = []
+
+        # Get unread notifications count
+        try:
+            unread_count = Notification.query.filter(
+                db.and_(
+                    Notification.is_read == False,
+                    db.or_(
+                        Notification.for_user == user_id,
+                        db.and_(
+                            Notification.for_role.like("%farmer%"),
+                            Notification.for_role != None
+                        )
+                    )
+                )
+            ).count()
+        except Exception as e:
+            print(f"Error fetching unread count: {str(e)}")
+            unread_count = 0
+
+        # Only print debug once
+        print(f"[DEBUG] Retrieved tasks for user {user_id}: today={len(today_tasks)}, tomorrow={len(tomorrow_tasks)}, week={len(week_tasks)}")
+
+        return render_template('farmer_dashboard.html',
+                               user=user,
+                               today_tasks=today_tasks,
+                               batches=batches,
+                               health_checks=health_checks,
+                               recent_notifications=recent_notifications,
+                               unread_count=unread_count)
+    except Exception as e:
+        print(f"Unexpected error in farmer_dashboard: {str(e)}")
+        flash('An unexpected error occurred. Please try again.', 'error')
+        return redirect(url_for('home'))
+
 
 #puspita just add this
 @app.route('/admin/manage-orders', methods=['GET', 'POST'])
@@ -1918,16 +2246,242 @@ def admin_income():
                            chart_data=chart_data)
 
 
+#=================== 1st may 2025
+
+@app.route('/admin/manage-tasks', methods=['GET', 'POST'])
+def manage_tasks():
+    try:
+        user_id = session.get('user_id')
+        user = db.session.get(User, user_id)
+        
+        if not user or user.role not in ['admin', 'manager']:
+            return redirect(url_for('login'))
+        
+        # Get all farmers for the assignment dropdown
+        farmers = User.query.filter_by(role='farmer').all()
+        
+        if request.method == 'POST':
+            try:
+                # Extract form data
+                name = request.form.get('name')
+                category = request.form.get('category')
+                due_date = datetime.strptime(request.form.get('due_date'), '%Y-%m-%d').date()
+                priority = request.form.get('priority')
+                description = request.form.get('description')
+                assigned_to = request.form.get('assigned_to')
+                
+                # Create new task
+                new_task = Task(
+                    name=name,
+                    category=category,
+                    due_date=due_date,
+                    priority=priority,
+                    description=description,
+                    status='pending',
+                    created_by=user_id,
+                    assigned_to=assigned_to
+                )
+                
+                db.session.add(new_task)
+                db.session.commit()
+                
+                flash('Task created successfully!', 'success')
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error creating task: {str(e)}', 'error')
+                print(f"Error fetching tasks: {str(e)}")
+            return redirect(url_for('manage_tasks'))
+        
+        # Get all tasks with error handling
+        try:
+            # Use a safer query that doesn't rely on the assigned_to column
+            # until we're sure it exists
+            tasks = db.session.query(Task).order_by(Task.due_date.asc()).all()
+        except Exception as e:
+            print(f"Error fetching tasks: {str(e)}")
+            tasks = []
+            flash("Could not load tasks. Please run the database migration first.", "error")
+        
+        # Get today's date for the form
+        today_date = datetime.now().strftime('%Y-%m-%d')
+        
+        return render_template('admin_manage_tasks.html', 
+                              user=user, 
+                              tasks=tasks, 
+                              farmers=farmers, 
+                              today_date=today_date)
+    except Exception as e:
+        print(f"Error fetching tasks: {str(e)}")
+        flash('An unexpected error occurred. Please try again.', 'error')
+        return redirect(url_for('home'))
 
 
 
 
+@app.route('/admin/edit-task/<int:task_id>', methods=['GET', 'POST'])
+def edit_task(task_id):
+    user_id = session.get('user_id')
+    user = db.session.get(User, user_id)
+    
+    if not user or user.role not in ['admin', 'manager']:
+        return redirect(url_for('login'))
+    
+    task = Task.query.get_or_404(task_id)
+    farmers = User.query.filter_by(role='farmer').all()
+    
+    if request.method == 'POST':
+        task.name = request.form.get('name')
+        task.category = request.form.get('category')
+        task.due_date = datetime.strptime(request.form.get('due_date'), '%Y-%m-%d').date()
+        task.priority = request.form.get('priority')
+        task.description = request.form.get('description')
+        task.assigned_to = request.form.get('assigned_to')
+        task.status = request.form.get('status')
+        
+        db.session.commit()
+        flash('Task updated successfully!', 'success')
+        return redirect(url_for('manage_tasks'))
+    
+    return render_template('admin_edit_task.html', user=user, task=task, farmers=farmers)
 
 
 
+@app.route('/admin/feed-schedule', methods=['GET', 'POST'])
+def admin_feed_schedule():
+    try:
+        user_id = session.get('user_id')
+        user = db.session.get(User, user_id)
+        
+        if not user or user.role not in ['admin', 'manager']:
+            return redirect(url_for('login'))
+        
+        # Get all batches for the dropdown
+        batches = PoultryBatch.query.all()
+        
+        if request.method == 'POST':
+            try:
+                # Extract form data
+                date = datetime.strptime(request.form.get('feeding_date'), '%Y-%m-%d').date()
+                time = datetime.strptime(request.form.get('feeding_time'), '%H:%M').time()
+                batch_id = request.form.get('batch_id')
+                feed_type = request.form.get('feed_type')
+                quantity = float(request.form.get('quantity'))
+                status = request.form.get('status')
+                notes = request.form.get('notes', '')
+                
+                # Create new feeding schedule
+                new_feeding = Feeding(
+                    date=date,
+                    time=time,
+                    batch_id=batch_id,
+                    feed_type=feed_type,
+                    quantity=quantity,
+                    status=status,
+                    notes=notes,
+                    recorded_by=user_id,
+                    created_by=user_id
+                )
+                
+                db.session.add(new_feeding)
+                db.session.commit()
+                
+                flash('Feed schedule created successfully!', 'success')
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error creating feed schedule: {str(e)}', 'error')
+                print(f"Error in feed schedule creation: {str(e)}")
+            
+            return redirect(url_for('admin_feed_schedule'))
+        
+        # Get today's date for the form
+        today_date = datetime.now().strftime('%Y-%m-%d')
+        
+        # Get all feeding schedules with proper error handling
+        try:
+            # Use outerjoin to handle potential missing relationships
+            feedings = (Feeding.query
+                        .outerjoin(User, Feeding.recorded_by == User.id)
+                        .order_by(Feeding.date.desc(), Feeding.time.asc())
+                        .all())
+        except Exception as e:
+            print(f"Error fetching feedings: {str(e)}")
+            feedings = []  # Fallback to empty list if query fails
+        
+        # Get unread notifications count for the sidebar
+        try:
+            unread_count = Notification.query.filter_by(is_read=False).count()
+        except Exception as e:
+            print(f"Error fetching notifications count: {str(e)}")
+            unread_count = 0
+        
+        return render_template('admin_feed_schedule.html', 
+                              user=user, 
+                              batches=batches,
+                              feedings=feedings,
+                              today_date=today_date,
+                              unread_count=unread_count)
+    
+    except Exception as e:
+        print(f"Unexpected error in admin_feed_schedule: {str(e)}")
+        flash('An unexpected error occurred. Please try again.', 'error')
+        return redirect(url_for('home'))
+
+@app.route('/admin/edit-feeding/<int:feeding_id>', methods=['GET', 'POST'])
+def edit_feeding():
+    try:
+        user_id = session.get('user_id')
+        user = db.session.get(User, user_id)
+        
+        if not user or user.role not in ['admin', 'manager']:
+            return redirect(url_for('login'))
+        
+        feeding = Feeding.query.get_or_404(feeding_id)
+        batches = PoultryBatch.query.all()
+        
+        if request.method == 'POST':
+            try:
+                feeding.date = datetime.strptime(request.form.get('feeding_date'), '%Y-%m-%d').date()
+                feeding.time = datetime.strptime(request.form.get('feeding_time'), '%H:%M').time()
+                feeding.batch_id = request.form.get('batch_id')
+                feeding.feed_type = request.form.get('feed_type')
+                feeding.quantity = float(request.form.get('quantity'))
+                feeding.status = request.form.get('status')
+                feeding.notes = request.form.get('notes', '')
+                
+                db.session.commit()
+                flash('Feeding schedule updated successfully!', 'success')
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error updating feeding schedule: {str(e)}', 'error')
+                print(f"Error in edit_feeding: {str(e)}")
+                
+            return redirect(url_for('admin_feed_schedule'))
+        
+        return render_template('edit_feeding.html', 
+                              user=user, 
+                              feeding=feeding,
+                              batches=batches)
+    except Exception as e:
+        print(f"Unexpected error in edit_feeding: {str(e)}")
+        flash('An unexpected error occurred. Please try again.', 'error')
+        return redirect(url_for('admin_feed_schedule'))
 
 
-
+@app.route('/admin/delete-feeding/<int:feeding_id>')
+def delete_feeding(feeding_id):
+    user_id = session.get('user_id')
+    user = db.session.get(User, user_id)
+    
+    if not user or user.role not in ['admin', 'manager']:
+        return redirect(url_for('login'))
+    
+    feeding = Feeding.query.get_or_404(feeding_id)
+    
+    db.session.delete(feeding)
+    db.session.commit()
+    
+    flash('Feeding schedule deleted successfully!', 'success')
+    return redirect(url_for('admin_feed_schedule'))
 
 
 if __name__ == '__main__':

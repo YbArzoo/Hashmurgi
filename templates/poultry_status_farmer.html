@@ -18,6 +18,7 @@
         <a href="{{ url_for('poultry_status_farmer') }}" class="block text-green-600 font-semibold">Poultry Status</a>
         <a href="{{ url_for('feed_schedule') }}" class="block text-gray-700 hover:text-green-500">Feed Schedule</a>
         <a href="{{ url_for('logout') }}" class="block text-gray-700 hover:text-red-500">Logout</a>
+        
       </nav>
     </aside>
 
@@ -27,6 +28,17 @@
         <h2 class="text-3xl font-semibold text-gray-800">Poultry Status</h2>
         <p class="text-gray-500">Monitor and update the health and status of your poultry</p>
       </header>
+
+      <!-- Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="mb-4 p-4 rounded-md {% if category == 'success' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
 
       <!-- Quick Actions -->
       <section class="bg-white p-6 rounded-lg shadow mb-6">
@@ -44,22 +56,22 @@
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
             <h4 class="text-lg font-semibold text-blue-700">Total Birds</h4>
-            <p class="text-3xl font-bold text-blue-800">1,250</p>
+            <p class="text-3xl font-bold text-blue-800">{{ batches|sum(attribute='count') }}</p>
             <p class="text-sm text-blue-600 mt-1">Across all categories</p>
           </div>
           <div class="bg-green-50 p-4 rounded-lg border border-green-100">
             <h4 class="text-lg font-semibold text-green-700">Layers</h4>
-            <p class="text-3xl font-bold text-green-800">850</p>
+            <p class="text-3xl font-bold text-green-800">{{ batches|selectattr('bird_type', 'equalto', 'layer')|sum(attribute='count') }}</p>
             <p class="text-sm text-green-600 mt-1">Egg production</p>
           </div>
           <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-100">
             <h4 class="text-lg font-semibold text-yellow-700">Broilers</h4>
-            <p class="text-3xl font-bold text-yellow-800">350</p>
+            <p class="text-3xl font-bold text-yellow-800">{{ batches|selectattr('bird_type', 'equalto', 'broiler')|sum(attribute='count') }}</p>
             <p class="text-sm text-yellow-600 mt-1">Meat production</p>
           </div>
           <div class="bg-purple-50 p-4 rounded-lg border border-purple-100">
             <h4 class="text-lg font-semibold text-purple-700">Chicks</h4>
-            <p class="text-3xl font-bold text-purple-800">50</p>
+            <p class="text-3xl font-bold text-purple-800">{{ batches|selectattr('bird_type', 'equalto', 'chick')|sum(attribute='count') }}</p>
             <p class="text-sm text-purple-600 mt-1">New additions</p>
           </div>
         </div>
@@ -72,28 +84,21 @@
           <input type="hidden" name="form_type" value="count_update">
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label for="bird_type" class="block text-sm font-medium text-gray-700 mb-1">Bird Type</label>
-              <select id="bird_type" name="bird_type" class="w-full p-2 border rounded">
-                <option value="layer">Layer</option>
-                <option value="broiler">Broiler</option>
-                <option value="chick">Chick</option>
-              </select>
-            </div>
-            <div>
               <label for="batch_id" class="block text-sm font-medium text-gray-700 mb-1">Batch ID</label>
-              <select id="batch_id" name="batch_id" class="w-full p-2 border rounded">
-                <option value="A123">Batch A123</option>
-                <option value="B456">Batch B456</option>
-                <option value="C789">Batch C789</option>
+              <select id="batch_id" name="batch_id" class="w-full p-2 border rounded" required onchange="updateCurrentCount(this.value)">
+                <option value="">Select Batch</option>
+                {% for batch in batches %}
+                  <option value="{{ batch.batch_id }}" data-count="{{ batch.count }}">{{ batch.batch_id }} ({{ batch.bird_type }})</option>
+                {% endfor %}
               </select>
             </div>
             <div>
               <label for="count_date" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-              <input type="date" id="count_date" name="count_date" class="w-full p-2 border rounded" value="{{ today_date }}">
+              <input type="date" id="count_date" name="count_date" class="w-full p-2 border rounded" value="{{ today_date }}" required>
             </div>
             <div>
               <label for="current_count" class="block text-sm font-medium text-gray-700 mb-1">Current Count</label>
-              <input type="number" id="current_count" name="current_count" class="w-full p-2 border rounded bg-gray-100" value="350" readonly>
+              <input type="number" id="current_count" name="current_count" class="w-full p-2 border rounded bg-gray-100" readonly>
             </div>
             <div>
               <label for="new_count" class="block text-sm font-medium text-gray-700 mb-1">New Count</label>
@@ -101,7 +106,8 @@
             </div>
             <div>
               <label for="reason" class="block text-sm font-medium text-gray-700 mb-1">Reason for Change</label>
-              <select id="reason" name="reason" class="w-full p-2 border rounded">
+              <select id="reason" name="reason" class="w-full p-2 border rounded" required>
+                <option value="">Select Reason</option>
                 <option value="mortality">Mortality</option>
                 <option value="sale">Sale</option>
                 <option value="transfer">Transfer</option>
@@ -128,19 +134,21 @@
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label for="health_batch_id" class="block text-sm font-medium text-gray-700 mb-1">Batch ID</label>
-              <select id="health_batch_id" name="health_batch_id" class="w-full p-2 border rounded">
-                <option value="A123">Batch A123</option>
-                <option value="B456">Batch B456</option>
-                <option value="C789">Batch C789</option>
+              <select id="health_batch_id" name="health_batch_id" class="w-full p-2 border rounded" required>
+                <option value="">Select Batch</option>
+                {% for batch in batches %}
+                  <option value="{{ batch.batch_id }}">{{ batch.batch_id }} ({{ batch.bird_type }})</option>
+                {% endfor %}
               </select>
             </div>
             <div>
               <label for="health_date" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-              <input type="date" id="health_date" name="health_date" class="w-full p-2 border rounded" value="{{ today_date }}">
+              <input type="date" id="health_date" name="health_date" class="w-full p-2 border rounded" value="{{ today_date }}" required>
             </div>
             <div>
               <label for="health_status" class="block text-sm font-medium text-gray-700 mb-1">Overall Health</label>
-              <select id="health_status" name="health_status" class="w-full p-2 border rounded">
+              <select id="health_status" name="health_status" class="w-full p-2 border rounded" required>
+                <option value="">Select Status</option>
                 <option value="excellent">Excellent</option>
                 <option value="good">Good</option>
                 <option value="fair">Fair</option>
@@ -150,7 +158,8 @@
             </div>
             <div>
               <label for="feed_consumption" class="block text-sm font-medium text-gray-700 mb-1">Feed Consumption</label>
-              <select id="feed_consumption" name="feed_consumption" class="w-full p-2 border rounded">
+              <select id="feed_consumption" name="feed_consumption" class="w-full p-2 border rounded" required>
+                <option value="">Select Consumption</option>
                 <option value="normal">Normal</option>
                 <option value="above">Above Normal</option>
                 <option value="below">Below Normal</option>
@@ -158,7 +167,8 @@
             </div>
             <div>
               <label for="water_consumption" class="block text-sm font-medium text-gray-700 mb-1">Water Consumption</label>
-              <select id="water_consumption" name="water_consumption" class="w-full p-2 border rounded">
+              <select id="water_consumption" name="water_consumption" class="w-full p-2 border rounded" required>
+                <option value="">Select Consumption</option>
                 <option value="normal">Normal</option>
                 <option value="above">Above Normal</option>
                 <option value="below">Below Normal</option>
@@ -166,7 +176,7 @@
             </div>
             <div>
               <label for="mortality" class="block text-sm font-medium text-gray-700 mb-1">Mortality Count</label>
-              <input type="number" id="mortality" name="mortality" class="w-full p-2 border rounded" value="0">
+              <input type="number" id="mortality" name="mortality" class="w-full p-2 border rounded" value="0" min="0" required>
             </div>
           </div>
           <div>
@@ -190,46 +200,51 @@
                 <th class="py-2 px-4 border-b">Batch</th>
                 <th class="py-2 px-4 border-b">Health Status</th>
                 <th class="py-2 px-4 border-b">Mortality</th>
-                <th class="py-2 px-4 border-b">Recorded By</th>
-                <th class="py-2 px-4 border-b">Actions</th>
+                <th class="py-2 px-4 border-b">Notes</th>
               </tr>
             </thead>
             <tbody>
-              <tr class="border-b">
-                <td class="py-2 px-4">Apr 15, 2025</td>
-                <td class="py-2 px-4">Batch A123</td>
-                <td class="py-2 px-4"><span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Good</span></td>
-                <td class="py-2 px-4">0</td>
-                <td class="py-2 px-4">{{ user.name }}</td>
-                <td class="py-2 px-4">
-                  <button class="text-blue-500 hover:text-blue-700">View Details</button>
-                </td>
-              </tr>
-              <tr class="border-b">
-                <td class="py-2 px-4">Apr 14, 2025</td>
-                <td class="py-2 px-4">Batch B456</td>
-                <td class="py-2 px-4"><span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">Fair</span></td>
-                <td class="py-2 px-4">2</td>
-                <td class="py-2 px-4">{{ user.name }}</td>
-                <td class="py-2 px-4">
-                  <button class="text-blue-500 hover:text-blue-700">View Details</button>
-                </td>
-              </tr>
-              <tr class="border-b">
-                <td class="py-2 px-4">Apr 13, 2025</td>
-                <td class="py-2 px-4">Batch C789</td>
-                <td class="py-2 px-4"><span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Excellent</span></td>
-                <td class="py-2 px-4">0</td>
-                <td class="py-2 px-4">{{ user.name }}</td>
-                <td class="py-2 px-4">
-                  <button class="text-blue-500 hover:text-blue-700">View Details</button>
-                </td>
-              </tr>
+              {% if recent_health_checks %}
+                {% for check in recent_health_checks %}
+                  <tr class="border-b">
+                    <td class="py-2 px-4">{{ check.check_date.strftime('%b %d, %Y') }}</td>
+                    <td class="py-2 px-4">{{ check.batch_id }}</td>
+                    <td class="py-2 px-4">
+                      <span class="{% if check.health_status == 'excellent' %}bg-green-100 text-green-800{% elif check.health_status == 'good' %}bg-blue-100 text-blue-800{% elif check.health_status == 'fair' %}bg-yellow-100 text-yellow-800{% elif check.health_status == 'poor' %}bg-orange-100 text-orange-800{% else %}bg-red-100 text-red-800{% endif %} px-2 py-1 rounded text-xs">
+                        {{ check.health_status|capitalize }}
+                      </span>
+                    </td>
+                    <td class="py-2 px-4">{{ check.mortality }}</td>
+                    <td class="py-2 px-4">{{ check.notes }}</td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="5" class="py-4 text-center text-gray-500">No recent health checks recorded</td>
+                </tr>
+              {% endif %}
             </tbody>
           </table>
         </div>
       </section>
     </main>
   </div>
+
+  <script>
+    // Function to update the current count field when a batch is selected
+    function updateCurrentCount(batchId) {
+      const selectElement = document.getElementById('batch_id');
+      const currentCountInput = document.getElementById('current_count');
+      
+      if (batchId) {
+        const selectedOption = Array.from(selectElement.options).find(option => option.value === batchId);
+        if (selectedOption) {
+          currentCountInput.value = selectedOption.dataset.count;
+        }
+      } else {
+        currentCountInput.value = '';
+      }
+    }
+  </script>
 </body>
 </html>

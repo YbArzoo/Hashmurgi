@@ -198,20 +198,7 @@ class Invoice(db.Model):
 
 
 
-class Task(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    category = db.Column(db.String(50), nullable=False)
-    due_date = db.Column(db.Date, nullable=False)
-    priority = db.Column(db.String(20), nullable=False)
-    description = db.Column(db.Text, nullable=True)
-    status = db.Column(db.String(20), default='pending')  # pending, completed, cancelled
-    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    completed_at = db.Column(db.DateTime, nullable=True)
-    
-    # Relationship
-    user = db.relationship('User', backref='tasks')
+
     
     
 
@@ -244,6 +231,33 @@ class HealthCheck(db.Model):
     # Relationship
     user = db.relationship('User', backref='health_checks')
 
+
+    
+    
+    
+# 30th April Arzoo
+class Task(db.Model):
+    __tablename__ = 'task'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    category = db.Column(db.String(50))
+    due_date = db.Column(db.Date, nullable=False)
+    priority = db.Column(db.String(20), default='medium')
+    description = db.Column(db.Text)
+    status = db.Column(db.String(20), default='pending')
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    assigned_to = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    completed_at = db.Column(db.DateTime)
+
+    # Relationships
+    creator = db.relationship('User', foreign_keys=[created_by], backref='created_tasks')
+    assignee = db.relationship('User', foreign_keys=[assigned_to], backref='assigned_tasks')
+
+    
+    
 class Feeding(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.Date, nullable=False)
@@ -255,6 +269,34 @@ class Feeding(db.Model):
     notes = db.Column(db.Text, nullable=True)
     recorded_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    completed_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    completed_at = db.Column(db.DateTime, nullable=True)
+    
+
+    # Relationships
+    recorder = db.relationship('User', foreign_keys=[recorded_by], backref='recorded_feedings')
+    creator = db.relationship('User', foreign_keys=[created_by], backref='created_feedings')
+    completer = db.relationship('User', foreign_keys=[completed_by], backref='completed_feedings')
+    
+    
+    
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    category = db.Column(db.String(50), nullable=False)  # 'count_update', 'health_check', 'system', etc.
+    priority = db.Column(db.String(20), default='normal')  # 'low', 'normal', 'high', 'urgent'
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_read = db.Column(db.Boolean, default=False)
+    related_batch = db.Column(db.String(100), nullable=True)  # Optional reference to a batch
+    for_user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # If notification is for a specific user
+    for_role = db.Column(db.String(100), nullable=True)  # If notification is for users with specific roles
     
     # Relationship
-    user = db.relationship('User', backref='feedings')
+    creator = db.relationship('User', foreign_keys=[created_by], backref='notifications_created')
+    target_user = db.relationship('User', foreign_keys=[for_user], backref='personal_notifications')
+    
+    def __repr__(self):
+        return f'<Notification {self.title}>'

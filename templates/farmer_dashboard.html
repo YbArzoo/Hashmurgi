@@ -16,6 +16,12 @@
         <a href="{{ url_for('daily_tasks') }}" class="block text-gray-700 hover:text-green-500">Daily Tasks</a>
         <a href="{{ url_for('poultry_status_farmer') }}" class="block text-gray-700 hover:text-green-500">Poultry Status</a>
         <a href="{{ url_for('feed_schedule') }}" class="block text-gray-700 hover:text-green-500">Feed Schedule</a>
+        <a href="{{ url_for('notifications') }}" class="flex items-center text-gray-700 hover:text-green-500">
+          <span class="flex-grow">Notifications</span>
+          {% if unread_count > 0 %}
+            <span class="bg-red-500 text-white text-xs rounded-full px-2 py-0.5">{{ unread_count }}</span>
+          {% endif %}
+        </a>
         <a href="{{ url_for('logout') }}" class="block text-gray-700 hover:text-red-500">Logout</a>
       </nav>
     </aside>
@@ -24,6 +30,18 @@
         <h2 class="text-3xl font-semibold text-gray-800">Welcome, {{ user.name }}</h2>
         <p class="text-gray-500">Track your responsibilities and update poultry records</p>
       </header>
+
+      <!-- Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="mb-4 p-4 rounded-md {% if category == 'success' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
       <section class="bg-white p-6 rounded-lg shadow mb-6">
         <h3 class="text-xl font-bold text-gray-800 mb-4">Today's Overview</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -32,9 +50,122 @@
           <a href="{{ url_for('daily_tasks') }}" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 text-center">Check Schedule</a>
         </div>
       </section>
-      <section class="bg-white p-6 rounded-lg shadow">
+
+      <!-- Recent Notifications -->
+      <section class="bg-white p-6 rounded-lg shadow mb-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-bold text-gray-800">Recent Notifications</h3>
+          <a href="{{ url_for('notifications') }}" class="text-blue-500 hover:text-blue-700 text-sm">
+            View All
+          </a>
+        </div>
+        <div class="space-y-4">
+         
+          
+          {% if recent_notifications %}
+            {% for notification in recent_notifications %}
+              <div class="border-l-4 {% if notification.category == 'feeding' %}border-green-500 bg-green-50{% elif notification.priority == 'high' %}border-yellow-500 bg-yellow-50{% elif notification.priority == 'urgent' %}border-red-500 bg-red-50{% else %}border-blue-500 bg-blue-50{% endif %} p-4 rounded-r-lg">
+                <h4 class="font-semibold text-gray-800">{{ notification.title }}</h4>
+                <p class="text-gray-600 mt-1">{{ notification.message }}</p>
+                <p class="text-sm text-gray-500 mt-2">
+                  {{ notification.created_at.strftime('%b %d, %Y, %I:%M %p') }}
+                </p>
+              </div>
+            {% endfor %}
+          {% else %}
+            <p class="text-gray-600">No recent notifications.</p>
+          {% endif %}
+        </div>
+      </section>
+
+      <!-- Poultry Stats -->
+      <section class="bg-white p-6 rounded-lg shadow mb-6">
         <h3 class="text-xl font-bold text-gray-800 mb-4">Poultry Stats</h3>
-        <p class="text-gray-600">No records available. Please update today's report.</p>
+        {% if batches %}
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+              <h4 class="text-lg font-semibold text-blue-700">Total Birds</h4>
+              <p class="text-3xl font-bold text-blue-800">{{ batches|sum(attribute='count') }}</p>
+            </div>
+            <div class="bg-green-50 p-4 rounded-lg border border-green-100">
+              <h4 class="text-lg font-semibold text-green-700">Batches</h4>
+              <p class="text-3xl font-bold text-green-800">{{ batches|length }}</p>
+            </div>
+            <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-100">
+              <h4 class="text-lg font-semibold text-yellow-700">Health Checks</h4>
+              <p class="text-3xl font-bold text-yellow-800">{{ health_checks|length }}</p>
+            </div>
+          </div>
+          
+          <!-- Recent Batches -->
+          <h4 class="text-lg font-semibold text-gray-700 mt-6 mb-2">Recent Batches</h4>
+          <div class="overflow-x-auto">
+            <table class="min-w-full bg-white">
+              <thead>
+                <tr class="bg-gray-50 text-left text-xs font-semibold text-gray-600 uppercase">
+                  <th class="py-2 px-4 border-b">Batch ID</th>
+                  <th class="py-2 px-4 border-b">Bird Type</th>
+                  <th class="py-2 px-4 border-b">Count</th>
+                  <th class="py-2 px-4 border-b">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for batch in batches[:5] %}
+                  <tr class="border-b">
+                    <td class="py-2 px-4">{{ batch.batch_id }}</td>
+                    <td class="py-2 px-4">{{ batch.bird_type|capitalize }}</td>
+                    <td class="py-2 px-4">{{ batch.count }}</td>
+                    <td class="py-2 px-4">
+                      <span class="{% if batch.status == 'Healthy' %}bg-green-100 text-green-800{% else %}bg-yellow-100 text-yellow-800{% endif %} px-2 py-1 rounded text-xs">
+                        {{ batch.status }}
+                      </span>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="text-gray-600">No records available. Please update today's report.</p>
+        {% endif %}
+      </section>
+
+      <!-- Recent Tasks -->
+      <section class="bg-white p-6 rounded-lg shadow">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Today's Tasks</h3>
+        {% if today_tasks %}
+          <div class="space-y-2">
+            {% for task in today_tasks %}
+              <div class="flex items-center p-3 border rounded-lg {% if task.status == 'completed' %}bg-gray-50{% else %}bg-white{% endif %}">
+                <div class="mr-3">
+                  {% if task.status == 'completed' %}
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                  {% else %}
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  {% endif %}
+                </div>
+                <div class="flex-1">
+                  <h4 class="font-medium {% if task.status == 'completed' %}line-through text-gray-500{% endif %}">{{ task.name }}</h4>
+                  <p class="text-sm text-gray-500">{{ task.category|capitalize }}</p>
+                </div>
+                <div>
+                  <span class="{% if task.priority == 'high' %}bg-red-100 text-red-800{% elif task.priority == 'medium' %}bg-yellow-100 text-yellow-800{% else %}bg-green-100 text-green-800{% endif %} px-2 py-1 rounded text-xs">
+                    {{ task.priority|capitalize }}
+                  </span>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+          <div class="mt-4 text-center">
+            <a href="{{ url_for('daily_tasks') }}" class="text-blue-500 hover:text-blue-700">View All Tasks</a>
+          </div>
+        {% else %}
+          <p class="text-gray-600">No tasks scheduled for today.</p>
+        {% endif %}
       </section>
     </main>
   </div>
