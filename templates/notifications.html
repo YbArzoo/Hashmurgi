@@ -9,27 +9,18 @@
 <body class="bg-gray-100 min-h-screen">
   <div class="flex h-screen">
     <!-- Sidebar -->
-    <aside class="w-64 bg-white shadow-md px-4 py-6">
-      <h1 class="text-2xl font-bold text-green-600 mb-6">Manager Panel</h1>
-      <nav class="space-y-4">
-        <a href="{{ url_for('manager_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
-        <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">
-          Profile Management
-        </a>
-        <a href="{{ url_for('poultry_stock') }}" class="block text-gray-700 hover:text-green-500">Poultry Stock</a>
-        <a href="{{ url_for('add_product') }}" class="block text-gray-700 hover:text-green-500">Add Product</a>
-        <a href="{{ url_for('vaccination_schedule') }}" class="block text-gray-700 hover:text-green-500">Vaccination Schedule</a>
-        <a href="{{ url_for('production_record') }}" class="block text-gray-700 hover:text-green-500">Production Records</a>
-        <a href="{{ url_for('feed_resources') }}" class="block text-gray-700 hover:text-green-500">Feed & Resources</a>
-        <a href="{{ url_for('notifications') }}" class="block text-green-600 font-semibold">Notifications</a>
-        <a href="{{ url_for('orders') }}" class="block text-gray-700 hover:text-green-500">Track Order</a>
-        <a href="{{ url_for('admin_reported_issues') }}" class="block text-gray-700 hover:text-green-500">
-          Reported Issues
-        </a>
-        <!-- Add this line for logout -->
-        <a href="{{ url_for('logout') }}" class="block text-red-600 hover:text-red-800">Logout</a>
-      </nav>
-    </aside>
+    {% if user.role == 'admin' %}
+      {% include 'sidebar_admin.html' %}
+    {% elif user.role == 'manager' %}
+      {% include 'sidebar_manager.html' %}
+    {% elif user.role == 'farmer' %}
+      {% include 'sidebar_farmer.html' %}
+    {% elif user.role == 'delivery_man' %}
+      {% include 'sidebar_delivery.html' %}
+    {% elif user.role == 'customer' %}
+      {% include 'sidebar_customer.html' %}
+    {% endif %}
+  
 
     <!-- Main Content -->
     <main class="flex-1 p-6 overflow-y-auto">
@@ -38,97 +29,31 @@
         <p class="text-gray-500">Stay updated with important alerts and messages</p>
       </header>
 
-      <!-- Notification Filters -->
-      <section class="bg-white p-6 rounded-lg shadow mb-6">
-        <div class="flex flex-wrap gap-4 mb-4">
-          <button class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">All</button>
-          <button class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">Unread</button>
-          <button class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">Stock Alerts</button>
-          <button class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">Orders</button>
-          <button class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">System</button>
-          <button class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">Delivery Issues</button>
-        </div>
-      </section>
+      <!-- Notification Filters (Optional, you can add filter links here) -->
 
       <!-- Notifications List -->
       <section class="space-y-4">
-        <!-- Delivery Issues Notifications -->
-        {% set delivery_issues = get_recent_issues() %}
-        {% if delivery_issues %}
-          {% for issue in delivery_issues %}
-            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg shadow">
+        {% if all_notifications %}
+          {% for note in all_notifications %}
+            <div class="border-l-4 {% if note.priority == 'urgent' %}border-red-500 bg-red-50{% elif note.priority == 'high' %}border-yellow-500 bg-yellow-50{% elif note.priority == 'normal' %}border-blue-500 bg-blue-50{% else %}border-gray-300 bg-white{% endif %} p-4 rounded-r-lg shadow">
               <div class="flex justify-between items-start">
                 <div>
-                  <h3 class="font-bold text-gray-800">Delivery Issue Reported</h3>
-                  <p class="text-gray-600 mt-1">
-                    {{ issue.reporter.name }} reported a {{ issue.issue_type }} issue for Order #{{ issue.order_id }}
-                  </p>
-                  <p class="text-sm text-gray-500 mt-2">{{ issue.created_at.strftime('%b %d, %Y, %I:%M %p') }}</p>
+                  <h3 class="font-bold text-gray-800">{{ note.title }}</h3>
+                  <p class="text-gray-600 mt-1">{{ note.message }}</p>
+                  <p class="text-sm text-gray-500 mt-2">{{ note.created_at.strftime('%b %d, %Y, %I:%M %p') }}</p>
                 </div>
+                {% if user.role in ['admin', 'manager'] %}
                 <div class="flex space-x-2">
-                  <a href="{{ url_for('admin_reported_issues') }}" class="text-blue-500 hover:text-blue-700">View Details</a>
-                  <button class="text-blue-500 hover:text-blue-700">Mark as Read</button>
+                  <a href="{{ url_for('mark_notification_read', notification_id=note.id) }}" class="text-blue-500 hover:text-blue-700">Mark as Read</a>
+                  <a href="{{ url_for('delete_notification', notification_id=note.id) }}" class="text-red-500 hover:text-red-700">Delete</a>
                 </div>
+                {% endif %}
               </div>
             </div>
           {% endfor %}
+        {% else %}
+          <p class="text-gray-600">No notifications available.</p>
         {% endif %}
-
-        <!-- Unread notification -->
-        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg shadow">
-          <div class="flex justify-between items-start">
-            <div>
-              <h3 class="font-bold text-gray-800">Low Stock Alert</h3>
-              <p class="text-gray-600 mt-1">Chicken feed inventory is below threshold (20kg remaining)</p>
-              <p class="text-sm text-gray-500 mt-2">Today, 10:45 AM</p>
-            </div>
-            <div class="flex space-x-2">
-              <button class="text-blue-500 hover:text-blue-700">Mark as Read</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Read notification -->
-        <div class="bg-white border-l-4 border-gray-300 p-4 rounded-lg shadow">
-          <div class="flex justify-between items-start">
-            <div>
-              <h3 class="font-bold text-gray-800">Vaccination Due</h3>
-              <p class="text-gray-600 mt-1">Batch #A123 is due for Newcastle vaccination tomorrow</p>
-              <p class="text-sm text-gray-500 mt-2">Yesterday, 3:20 PM</p>
-            </div>
-            <div class="flex space-x-2">
-              <button class="text-gray-500 hover:text-gray-700">Delete</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Order notification -->
-        <div class="bg-white border-l-4 border-gray-300 p-4 rounded-lg shadow">
-          <div class="flex justify-between items-start">
-            <div>
-              <h3 class="font-bold text-gray-800">New Order Received</h3>
-              <p class="text-gray-600 mt-1">Order #10045 for 50 eggs has been placed</p>
-              <p class="text-sm text-gray-500 mt-2">Apr 12, 2025, 9:15 AM</p>
-            </div>
-            <div class="flex space-x-2">
-              <button class="text-gray-500 hover:text-gray-700">Delete</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- System notification -->
-        <div class="bg-white border-l-4 border-gray-300 p-4 rounded-lg shadow">
-          <div class="flex justify-between items-start">
-            <div>
-              <h3 class="font-bold text-gray-800">System Maintenance</h3>
-              <p class="text-gray-600 mt-1">The system will undergo maintenance on April 20, 2025 from 2:00 AM to 4:00 AM</p>
-              <p class="text-sm text-gray-500 mt-2">Apr 10, 2025, 11:30 AM</p>
-            </div>
-            <div class="flex space-x-2">
-              <button class="text-gray-500 hover:text-gray-700">Delete</button>
-            </div>
-          </div>
-        </div>
       </section>
     </main>
   </div>

@@ -1,0 +1,19 @@
+<!-- sidebar_customer.html -->
+<aside class="w-64 bg-white shadow-md px-4 py-6">
+    <h1 class="text-2xl font-bold text-green-600 mb-6">Customer Panel</h1>
+    <nav class="space-y-4">
+      <a href="{{ url_for('customer_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
+      <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile Management</a>
+      <a href="{{ url_for('shop') }}" class="block text-gray-700 hover:text-green-500">Shop now</a>
+      <a href="{{ url_for('view_cart') }}" class="block text-gray-700 hover:text-green-500">Shopping Cart</a>
+      <a href="{{ url_for('track_customer_orders') }}" class="block text-gray-700 hover:text-green-500">Track My Orders</a>
+      <a href="{{ url_for('notifications') }}" class="block text-gray-700 hover:text-green-500">
+        Notifications
+        {% if unread_count > 0 %}
+          <span class="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">{{ unread_count }}</span>
+        {% endif %}
+      </a>
+      
+      <a href="{{ url_for('logout') }}" class="block text-gray-700 hover:text-red-500">Logout</a>
+    </nav>
+  </aside>

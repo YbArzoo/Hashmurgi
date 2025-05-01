@@ -37,10 +37,28 @@
       <section class="bg-white p-6 rounded-lg shadow mb-6">
         <div class="flex flex-col md:flex-row gap-4 justify-between">
           <div class="flex gap-2">
-            <button class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">All Orders</button>
-            <button class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">Processing</button>
-            <button class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">Shipped</button>
-            <button class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">Delivered</button>
+            <a href="{{ url_for('track_customer_orders', status='All') }}"
+              class="px-4 py-2 rounded {{ 'bg-green-500 text-white' if status_filter == 'All' else 'bg-gray-200 text-gray-800 hover:bg-gray-300' }}">
+              All Orders
+            </a>
+            <a href="{{ url_for('track_customer_orders', status='Pending') }}"
+              class="px-4 py-2 rounded {{ 'bg-yellow-500 text-white' if status_filter == 'Pending' else 'bg-gray-200 text-gray-800 hover:bg-gray-300' }}">
+              Pending
+            </a>
+            <a href="{{ url_for('track_customer_orders', status='In Transit') }}"
+              class="px-4 py-2 rounded {{ 'bg-blue-500 text-white' if status_filter == 'In Transit' else 'bg-gray-200 text-gray-800 hover:bg-gray-300' }}">
+              In Transit
+            </a>
+            <a href="{{ url_for('track_customer_orders', status='Delivered') }}"
+              class="px-4 py-2 rounded {{ 'bg-green-600 text-white' if status_filter == 'Delivered' else 'bg-gray-200 text-gray-800 hover:bg-gray-300' }}">
+              Delivered
+            </a>
+            <a href="{{ url_for('track_customer_orders', status='Cancelled') }}"
+              class="px-4 py-2 rounded {{ 'bg-red-500 text-white' if status_filter == 'Cancelled' else 'bg-gray-200 text-gray-800 hover:bg-gray-300' }}">
+              Cancelled
+            </a>
+
+
           </div>
           <div>
             <input type="text" placeholder="Search orders..." class="p-2 border rounded">
@@ -82,7 +100,9 @@
                 </div>
                 <div class="flex-1">
                   <h4 class="font-semibold mb-2">Delivery Status</h4>
-                  <p class="text-sm text-gray-700">{{ order.status }}</p>
+                  <p class="text-sm font-semibold {% if order.status == 'Delivered' %}text-green-600{% elif order.status == 'In Transit' %}text-blue-600{% elif order.status == 'Cancelled' %}text-red-600{% else %}text-yellow-600{% endif %}">
+                    {{ order.status }}
+                  </p>
                 </div>
               </div>
               <div class="mt-4 flex justify-end gap-2">

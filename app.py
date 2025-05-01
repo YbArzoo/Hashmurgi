@@ -693,13 +693,19 @@ def track_customer_orders():
     user_id = session.get('user_id')
     user = db.session.get(User, user_id)
 
-    
     if not user or user.role != 'customer':
         return redirect(url_for('login'))
-    
-    # In a real application, you would fetch the user's orders from the database
-    # For now, we'll just render the template with dummy data
-    return render_template('track_orders.html', user=user)
+
+    # ✅ Fetch real customer orders
+    status_filter = request.args.get('status')
+
+    if status_filter and status_filter != 'All':
+        orders = Order.query.filter_by(customer_id=user_id, status=status_filter).order_by(Order.order_date.desc()).all()
+    else:
+        orders = Order.query.filter_by(customer_id=user_id).order_by(Order.order_date.desc()).all()
+
+
+    return render_template('track_orders.html', user=user, orders=orders)
 
 @app.route('/generate-invoice/<int:order_id>')
 def generate_invoice(order_id):
@@ -829,11 +835,35 @@ def customer_dashboard():
     user_id = session.get('user_id')
     user = db.session.get(User, user_id)
 
-    
-    if not user or user.role != 'customer':  # Make sure the user is a customer
-        return redirect(url_for('home'))  # Redirect if not a customer
-    
-    return render_template('customer_dashboard.html', user=user)
+    if not user or user.role != 'customer':
+        return redirect(url_for('home'))
+
+    # ✅ Fetch recent notifications for customer
+    recent_notifications = Notification.query.filter(
+        db.or_(
+            Notification.for_user == user_id,
+            Notification.for_role.like('%customer%')
+        )
+    ).order_by(Notification.created_at.desc()).limit(5).all()
+
+    # ✅ Count unread notifications
+    unread_count = Notification.query.filter(
+        db.and_(
+            Notification.is_read == False,
+            db.or_(
+                Notification.for_user == user_id,
+                Notification.for_role.like('%customer%')
+            )
+        )
+    ).count()
+
+    return render_template(
+        'customer_dashboard.html',
+        user=user,
+        recent_notifications=recent_notifications,
+        unread_count=unread_count
+    )
+
 
 
 @app.route('/delivery-dashboard')
@@ -844,20 +874,34 @@ def delivery_dashboard():
     if not user or user.role != 'delivery_man':
         return redirect(url_for('login'))
     
-    # Get today's date
     today = datetime.now().date()
-    
-    # In a real application, you would fetch this data from the database
-    # For now, we'll use dummy data
-    today_deliveries = 3
-    pending_deliveries = 2
-    completed_deliveries = 1
-    
+
+    # Fetch recent notifications (customize query if needed)
+    recent_notifications = Notification.query.filter(
+        db.or_(
+            Notification.for_user == user_id,
+            Notification.for_role.like("%delivery_man%")
+        )
+    ).order_by(Notification.created_at.desc()).limit(5).all()
+
+    unread_count = Notification.query.filter(
+        db.and_(
+            Notification.is_read == False,
+            db.or_(
+                Notification.for_user == user_id,
+                Notification.for_role.like("%delivery_man%")
+            )
+        )
+    ).count()
+
     return render_template('delivery_man_dashboard.html', 
-                          user=user,
-                          today_deliveries=today_deliveries,
-                          pending_deliveries=pending_deliveries,
-                          completed_deliveries=completed_deliveries)
+                           user=user,
+                           today_deliveries=3,  # Replace with real logic
+                           pending_deliveries=2,
+                           completed_deliveries=1,
+                           recent_notifications=recent_notifications,
+                           unread_count=unread_count)
+
 
 # Remove or comment out the first update_order_status function
 # @app.route('/update-order-status/<int:order_id>', methods=['GET', 'POST'])
@@ -1627,13 +1671,93 @@ def change_password():
 @app.route('/notifications')
 def notifications():
     user_id = session.get('user_id')
-    user = db.session.get(User, user_id)
-
-    
-    if not user or user.role != 'manager':
+    if not user_id:
         return redirect(url_for('login'))
+        
+    user = db.session.get(User, user_id)
+    if not user:
+        return redirect(url_for('login'))
+
+    try:
+        # Dynamic filtering
+        query = Notification.query
+
+        if user.role in ['admin', 'manager']:
+            # Admins and managers see all
+            filtered_notifications = query.order_by(Notification.created_at.desc()).all()
+        else:
+            # Customers, Farmers, Delivery Men see only targeted notifications
+            filtered_notifications = query.filter(
+                db.or_(
+                    Notification.for_user == user_id,
+                    Notification.for_role.like(f"%{user.role}%")
+                )
+            ).order_by(Notification.created_at.desc()).all()
+
+        unread_count = Notification.query.filter(
+            db.and_(
+                Notification.is_read == False,
+                db.or_(
+                    Notification.for_user == user_id,
+                    Notification.for_role.like(f"%{user.role}%")
+                )
+            )
+        ).count()
+
+    except Exception as e:
+        print(f"Notification error: {str(e)}")
+        filtered_notifications = []
+        unread_count = 0
+
+    return render_template('notifications.html', 
+                           user=user, 
+                           all_notifications=filtered_notifications,
+                           unread_count=unread_count)
+
+
+
+@app.route('/mark-notification-read/<int:notification_id>')
+def mark_notification_read(notification_id):
+    user_id = session.get('user_id')
+    user = db.session.get(User, user_id)
     
-    return render_template('notifications.html', user=user)
+    if not user:
+        return redirect(url_for('login'))
+
+    notification = Notification.query.get_or_404(notification_id)
+
+    # Allow only if user is admin/manager OR it's meant for them
+    if user.role in ['admin', 'manager'] or notification.for_user == user_id or notification.for_role == user.role:
+        notification.is_read = True
+        db.session.commit()
+        flash('Notification marked as read', 'success')
+    else:
+        flash('You are not authorized to mark this notification', 'danger')
+
+    return redirect(url_for('notifications'))
+
+
+@app.route('/delete-notification/<int:notification_id>')
+def delete_notification(notification_id):
+    user_id = session.get('user_id')
+    user = db.session.get(User, user_id)
+    
+    if not user:
+        return redirect(url_for('login'))
+
+    notification = Notification.query.get_or_404(notification_id)
+
+    # Allow delete only for admin or the creator
+    if user.role == 'admin' or notification.created_by == user.id:
+        db.session.delete(notification)
+        db.session.commit()
+        flash('Notification deleted successfully.', 'success')
+    else:
+        flash('Unauthorized to delete notification.', 'danger')
+
+    return redirect(url_for('notifications'))
+
+
 
 @app.route('/feed-resources', methods=['GET', 'POST'])
 def feed_resources():
@@ -1914,31 +2038,38 @@ def manage_orders():
         if order:
             if new_status:
                 order.status = new_status
+
             if delivery_man_id:
-                order.delivery_man_id = int(delivery_man_id)
+                new_dm_id = int(delivery_man_id)
+
+                if order.delivery_man_id != new_dm_id:
+                    order.delivery_man_id = new_dm_id
+
+                    delivery_man = User.query.get(new_dm_id)
+                    if delivery_man:
+                        notification = Notification(
+                            title=f"New Delivery Assigned - Order #{order.id}",
+                            message=f"You have been assigned to deliver Order #{order.id}. Please check your dashboard for details.",
+                            category="order_assignment",
+                            priority="normal",
+                            for_user=delivery_man.id,
+                            for_role="delivery_man",
+                            is_read=False,
+                            created_at=datetime.utcnow(),
+                            created_by=user.id
+                        )
+                        db.session.add(notification)
+
             db.session.commit()
-        return redirect(url_for('manage_orders'))
 
-    # Fetch all orders
-    orders = Order.query.all()
-    now = datetime.utcnow()
-
-    # Update priority based on emergency criteria
-    for order in orders:
-        urgent = (
-            order.total_amount and order.total_amount > 1000
-        ) or (
-            order.delivery_date and order.delivery_date - now < timedelta(hours=6)
-        )
-        order.priority = PriorityLevel.high if urgent else PriorityLevel.medium
-
-    db.session.commit()
 
     # Fetch again sorted by priority and order date
     orders = Order.query.order_by(Order.priority.desc(), Order.order_date.desc()).all()
     delivery_men = User.query.filter_by(role='delivery_man').all()
 
     return render_template('admin_manager_orders.html', user=user, orders=orders, delivery_men=delivery_men)
+
+
 @app.route('/add-to-cart/<int:product_id>', methods=['POST'])
 def add_to_cart(product_id):
     if 'user_id' not in session:
@@ -2140,6 +2271,7 @@ def delivery_update_order_status(order_id):
         print(f"DEBUG: Updating order {order_id} status to {new_status}")
         
         order.status = new_status
+        
 
         if new_status == 'Delivered':
             order.delivery_date = datetime.utcnow()
@@ -2164,6 +2296,22 @@ def delivery_update_order_status(order_id):
             else:
                 print(f"Payment already exists for Order #{order.id}")
 
+                # Send notification to the customer about the new delivery status
+        
+        notification = Notification(
+            title=f"Order #{order.id} Status Updated",
+            message=f"Your order is now marked as '{new_status}' by the delivery man.",
+            category="order_update",
+            priority="normal" if new_status != "Delivered" else "high",
+            for_user=order.customer_id,
+            for_role="customer",
+            is_read=False,
+            created_at=datetime.utcnow(),
+            created_by=user.id
+        )
+        db.session.add(notification)
+        
+        
         db.session.commit()
         print(f"DB committed for order #{order.id} update.")
         

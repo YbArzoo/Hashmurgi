@@ -1,0 +1,23 @@
+<!-- sidebar_manager.html -->
+<aside class="w-64 bg-white shadow-md px-4 py-6">
+    <h1 class="text-2xl font-bold text-green-600 mb-6">Manager Panel</h1>
+    <nav class="space-y-4">
+      <a href="{{ url_for('manager_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
+      <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile Management</a>
+      <a href="{{ url_for('poultry_stock') }}" class="block text-gray-700 hover:text-green-500">Poultry Stock</a>
+      <a href="{{ url_for('add_product') }}" class="block text-gray-700 hover:text-green-500">Add Product</a>
+      <a href="{{ url_for('manage_vaccinations') }}" class="block text-gray-700 hover:text-green-500">Vaccination Schedule</a>
+      <a href="{{ url_for('production_record') }}" class="block text-gray-700 hover:text-green-500">Production Records</a>
+      <a href="{{ url_for('feed_resources') }}" class="block text-gray-700 hover:text-green-500">Feed & Resources</a>
+      <a href="{{ url_for('admin_feed_schedule') }}" class="block text-gray-700 hover:text-green-500">Feed Schedule</a>
+      <a href="{{ url_for('notifications') }}" class="block text-gray-700 hover:text-green-500">
+        Notifications
+        {% if unread_count > 0 %}<span class="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">{{ unread_count }}</span>{% endif %}
+      </a>
+      <a href="{{ url_for('orders') }}" class="block text-gray-700 hover:text-green-500">Track Order</a>
+      <a href="{{ url_for('admin_reported_issues') }}" class="block text-gray-700 hover:text-green-500">Reported Issues</a>
+      <a href="{{ url_for('manage_tasks') }}" class="block text-gray-700 hover:text-green-500">Manage Tasks</a>
+      <a href="{{ url_for('manage_orders') }}" class="block text-gray-700 hover:text-blue-500">Manage Orders</a>
+      <a href="{{ url_for('logout') }}" class="block text-red-600 hover:text-red-800">Logout</a>
+    </nav>
+  </aside>

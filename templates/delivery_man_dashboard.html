@@ -19,6 +19,13 @@
     <a href="{{ url_for('delivery_map') }}" class="block text-gray-700 hover:text-green-500">Delivery Map</a>
     <a href="{{ url_for('report_issues') }}" class="block text-gray-700 hover:text-green-500">Report Issues</a>
     <a href="{{ url_for('delivery_income') }}" class="block text-gray-700 hover:text-green-500">Income</a>
+    <a href="{{ url_for('notifications') }}" class="block text-gray-700 hover:text-green-500">
+      Notifications
+      {% if unread_count > 0 %}
+        <span class="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">{{ unread_count }}</span>
+      {% endif %}
+    </a>
+    
     <a href="{{ url_for('logout') }}" class="block text-gray-700 hover:text-red-500">Logout</a>
   </nav>
 </aside>
@@ -41,14 +48,25 @@
         </div>
       </section>
 
-      <!-- Notifications -->
-      <section class="bg-white p-6 rounded-lg shadow">
-        <h3 class="text-xl font-bold text-gray-800 mb-4">Delivery Alerts</h3>
-        <p class="text-gray-600">No critical alerts at this time.</p>
-      </section>
-      <section class="bg-white p-6 rounded-lg shadow">
-        <h3 class="text-xl font-bold text-gray-800 mb-4">Mark Delivered</h3>
-        <p class="text-gray-600">Not yet</p>
+      <!-- Recent Notifications -->
+      <section class="bg-white p-6 rounded-lg shadow mb-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-bold text-gray-800">Recent Notifications</h3>
+          <a href="{{ url_for('notifications') }}" class="text-blue-500 hover:text-blue-700 text-sm">
+            View All
+          </a>
+        </div>
+        <div class="space-y-4">
+          {% for notification in recent_notifications %}
+            <div class="border-l-4 {% if notification.priority == 'urgent' %}border-red-500 bg-red-50{% elif notification.priority == 'high' %}border-yellow-500 bg-yellow-50{% else %}border-blue-500 bg-blue-50{% endif %} p-4 rounded-r-lg">
+              <h4 class="font-semibold text-gray-800">{{ notification.title }}</h4>
+              <p class="text-gray-600 mt-1">{{ notification.message }}</p>
+              <p class="text-sm text-gray-500 mt-2">{{ notification.created_at.strftime('%b %d, %Y, %I:%M %p') }}</p>
+            </div>
+          {% else %}
+            <p class="text-gray-600">No notifications available.</p>
+          {% endfor %}
+        </div>
       </section>
     </main>
   </div>
