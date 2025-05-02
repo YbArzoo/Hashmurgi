@@ -42,9 +42,15 @@
       
         
         
+           
+        <a href="{{ url_for('notifications') }}" class="block text-gray-700 hover:text-blue-500">
+          Notifications
+          {% if unread_count > 0 %}
+            <span class="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">{{ unread_count }}</span>
+          {% endif %}
+        </a>
         
-        
-        <a href="#" class="block text-gray-700 hover:text-blue-500">Notifications</a>
+
       </nav>
 
       <!-- Logout Button -->
@@ -98,6 +104,24 @@
         <p class="text-red-500">⚠️ Low Feed Cost Alert Enabled</p>
         <p class="text-gray-600 mt-2">Admins will receive notifications for low feed cost thresholds.</p>
       </section>
+      <section class="bg-white p-6 rounded-lg shadow mt-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-bold text-gray-800">Recent Notifications</h3>
+          <a href="{{ url_for('notifications') }}" class="text-blue-500 hover:text-blue-700 text-sm">View All</a>
+        </div>
+        <div class="space-y-4">
+          {% for note in recent_notifications %}
+            <div class="border-l-4 {% if note.priority == 'urgent' %}border-red-500 bg-red-50{% elif note.priority == 'high' %}border-yellow-500 bg-yellow-50{% else %}border-blue-500 bg-blue-50{% endif %} p-4 rounded-r-lg shadow">
+              <h4 class="font-semibold text-gray-800">{{ note.title }}</h4>
+              <p class="text-gray-600 mt-1">{{ note.message }}</p>
+              <p class="text-sm text-gray-500 mt-2">{{ note.created_at.strftime('%b %d, %Y, %I:%M %p') }}</p>
+            </div>
+          {% else %}
+            <p class="text-gray-600">No notifications available.</p>
+          {% endfor %}
+        </div>
+      </section>
+      
     </main>
   </div>
 </body>

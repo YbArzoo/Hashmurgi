@@ -75,7 +75,23 @@ def home():
 # Admin panel route
 @app.route('/admin')
 def admin_panel():
-    return render_template('admin_panel.html')
+    user_id = session.get('user_id')
+    user = db.session.get(User, user_id)
+
+    if not user or user.role != 'admin':
+        return redirect(url_for('login'))
+
+    # ✅ Fetch recent notifications for dashboard
+    recent_notifications = Notification.query.order_by(Notification.created_at.desc()).limit(5).all()
+
+    # ✅ Count unread notifications
+    unread_count = Notification.query.filter_by(is_read=False).count()
+
+    return render_template('admin_panel.html', user=user, recent_notifications=recent_notifications, unread_count=unread_count)
+
+
+
+
 
 # Add Admin (GET + POST)
 @app.route('/add-admin', methods=['GET', 'POST'])
