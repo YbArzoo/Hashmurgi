@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Assign Task - HashMurgi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="flex h-screen">
+    {% if user.role == 'admin' %}
+      {% include 'sidebar_admin.html' %}
+    {% elif user.role == 'manager' %}
+      {% include 'sidebar_manager.html' %}
+    {% endif %}
+
+    <main class="flex-1 p-6 overflow-y-auto">
+      <h2 class="text-3xl font-semibold text-gray-800 mb-6">Assign Task to Farmer</h2>
+
+      <!-- Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="mb-4 p-4 rounded-md {% if category == 'success' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" class="bg-white p-6 rounded-lg shadow-md max-w-2xl">
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Select Farmer</label>
+          <select name="farmer_id" required class="w-full border px-3 py-2 rounded">
+            {% for farmer in farmers %}
+              <option value="{{ farmer.id }}">{{ farmer.name }} ({{ farmer.email }})</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Task Title</label>
+          <input type="text" name="name" required class="w-full border px-3 py-2 rounded" placeholder="e.g. Clean Shed 2" />
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <textarea name="description" required class="w-full border px-3 py-2 rounded" rows="3"></textarea>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+          <select name="priority" required class="w-full border px-3 py-2 rounded">
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+          <select name="category" required class="w-full border px-3 py-2 rounded">
+            <option value="feeding">Feeding</option>
+            <option value="cleaning">Cleaning</option>
+            <option value="health_check">Health Check</option>
+            <option value="maintenance">Maintenance</option>
+            <option value="collection">Collection</option>
+          </select>
+        </div>
+
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+          <input type="date" name="due_date" required class="w-full border px-3 py-2 rounded" />
+        </div>
+
+        <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">Assign Task</button>
+      </form>
+    </main>
+  </div>
+</body>
+</html>

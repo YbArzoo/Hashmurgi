@@ -1367,6 +1367,23 @@ def daily_tasks():
                         task.completed_at = datetime.utcnow()
                         db.session.commit()
                         flash('Task marked as completed!', 'success')
+                        
+                        
+                        # ✅ Send notification to admin and manager
+                        for role in ['admin', 'manager']:
+                            notify = Notification(
+                                title="Task Completed",
+                                message=f"{task.name} has been marked as completed by farmer {user.name}.",
+                                category='task_update',
+                                priority=task.priority,
+                                for_role=role,
+                                is_read=False,
+                                created_at=datetime.utcnow(),
+                                created_by=user.id
+                            )
+                            db.session.add(notify)
+                        db.session.commit()
+
                     else:
                         print(f"[WARNING] No user_id in session, redirecting to login")
 
@@ -1697,6 +1714,11 @@ def notifications():
     try:
         # Dynamic filtering
         query = Notification.query
+
+        category_filter = request.args.get('category')
+        if category_filter:
+            query = query.filter_by(category=category_filter)
+
 
         if user.role in ['admin', 'manager']:
             # Admins and managers see all
@@ -2646,6 +2668,73 @@ def delete_feeding(feeding_id):
     
     flash('Feeding schedule deleted successfully!', 'success')
     return redirect(url_for('admin_feed_schedule'))
+
+
+@app.route('/assign-task', methods=['GET', 'POST'])
+def assign_task():
+    user_id = session.get('user_id')
+    user = db.session.get(User, user_id)
+
+    if not user or user.role not in ['admin', 'manager']:
+        return redirect(url_for('login'))
+
+    if user.role in ['admin', 'manager']:
+        unread_count = Notification.query.filter_by(is_read=False).count()
+    else:
+        unread_count = 0
+
+    farmers = User.query.filter_by(role='farmer').all()
+
+    if request.method == 'POST':
+        farmer_id = request.form['farmer_id']
+        name = request.form['name']
+        description = request.form['description']
+        priority = request.form['priority']
+        category = request.form['category']
+        due_date = datetime.strptime(request.form['due_date'], '%Y-%m-%d')
+
+        new_task = Task(
+            assigned_to=farmer_id,  # ✅ assuming your model uses assigned_to
+            name=name,
+            description=description,
+            priority=priority,
+            category=category,
+            due_date=due_date,
+            status='pending'
+        )
+
+        db.session.add(new_task)
+
+        # Send notification to farmer
+        notify = Notification(
+            title="New Task Assigned",
+            message=f"{name} - {description}",
+            category='task_update',
+            priority=priority,
+            for_user=farmer_id,
+            for_role='farmer',
+            is_read=False,
+            created_at=datetime.utcnow(),
+            created_by=user.id
+        )
+        db.session.add(notify)
+
+        db.session.commit()
+        flash('Task assigned successfully!', 'success')
+        return redirect(url_for('assign_task'))
+
+    return render_template('admin_manager_assign_task.html', user=user, farmers=farmers, unread_count=unread_count)
+
+
+
+
+
+
+
+
+
+
+
 
 
 if __name__ == '__main__':
