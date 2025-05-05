@@ -50,7 +50,9 @@
             <a href="{{ url_for('notifications') }}" class="text-blue-500 hover:text-blue-700 text-sm">View All</a>
           </div>
           <div class="space-y-4">
-            {% for notification in recent_notifications %}
+            {% for notification in notifications[:5] %}
+
+
               <div class="border-l-4 {% if notification.priority == 'urgent' %}border-red-500 bg-red-50{% elif notification.priority == 'high' %}border-yellow-500 bg-yellow-50{% else %}border-blue-500 bg-blue-50{% endif %} p-4 rounded-r-lg shadow">
                 <h4 class="font-semibold text-gray-800">{{ notification.title }}</h4>
                 <p class="text-gray-600 mt-1">{{ notification.message }}</p>

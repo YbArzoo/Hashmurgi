@@ -285,6 +285,7 @@ class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
     message = db.Column(db.Text, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     category = db.Column(db.String(50), nullable=False)  # 'count_update', 'health_check', 'system', etc.
     priority = db.Column(db.String(20), default='normal')  # 'low', 'normal', 'high', 'urgent'
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -300,3 +301,19 @@ class Notification(db.Model):
     
     def __repr__(self):
         return f'<Notification {self.title}>'
+    
+    
+
+# 05-May-2025 Arzoo
+class CartItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    quantity = db.Column(db.Integer, default=1)
+
+    user = db.relationship('User', backref='cart_items')
+    product = db.relationship('Product')
+
+    @property
+    def subtotal(self):
+        return self.quantity * self.product.unit_price

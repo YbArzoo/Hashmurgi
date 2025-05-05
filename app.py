@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from models import db, User, Product, Order, OrderItem, DeliveryIssue, DeliveryPayment, Batch, Vaccination, Production, FeedLog, Sale, Invoice, PriorityLevel, PoultryBatch, HealthCheck, Notification, Task, Feeding
+from models import db, User, Product, Order, OrderItem, DeliveryIssue, DeliveryPayment, Batch, Vaccination, Production, FeedLog, Sale, Invoice, PriorityLevel, PoultryBatch, HealthCheck, Notification, Task, Feeding, CartItem
 from config import Config
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
@@ -854,29 +854,14 @@ def customer_dashboard():
     if not user or user.role != 'customer':
         return redirect(url_for('home'))
 
-    # ✅ Fetch recent notifications for customer
-    recent_notifications = Notification.query.filter(
-        db.or_(
-            Notification.for_user == user_id,
-            Notification.for_role.like('%customer%')
-        )
-    ).order_by(Notification.created_at.desc()).limit(5).all()
-
-    # ✅ Count unread notifications
-    unread_count = Notification.query.filter(
-        db.and_(
-            Notification.is_read == False,
-            db.or_(
-                Notification.for_user == user_id,
-                Notification.for_role.like('%customer%')
-            )
-        )
-    ).count()
+    
+    notifications = Notification.query.filter_by(user_id=user_id).order_by(Notification.created_at.desc()).all()
+    unread_count = Notification.query.filter_by(user_id=user_id, is_read=False).count()
 
     return render_template(
         'customer_dashboard.html',
         user=user,
-        recent_notifications=recent_notifications,
+        notifications=notifications,
         unread_count=unread_count
     )
 
@@ -1264,10 +1249,12 @@ def login():
 
 
 
-@app.route('/logout', methods=['GET', 'POST'])
+@app.route('/logout')
 def logout():
-    session.pop('user_id', None)  # Clear the session
-    return redirect(url_for('home'))  # Redirect to the homepage (index.html)
+    session.pop('user_id', None)
+    session.pop('cart', None)  
+    return redirect(url_for('login'))
+
 
 
 
@@ -1712,45 +1699,27 @@ def notifications():
         return redirect(url_for('login'))
 
     try:
-        # Dynamic filtering
         query = Notification.query
-
         category_filter = request.args.get('category')
         if category_filter:
             query = query.filter_by(category=category_filter)
 
-
-        if user.role in ['admin', 'manager']:
-            # Admins and managers see all
-            filtered_notifications = query.order_by(Notification.created_at.desc()).all()
-        else:
-            # Customers, Farmers, Delivery Men see only targeted notifications
-            filtered_notifications = query.filter(
-                db.or_(
-                    Notification.for_user == user_id,
-                    Notification.for_role.like(f"%{user.role}%")
-                )
-            ).order_by(Notification.created_at.desc()).all()
-
-        unread_count = Notification.query.filter(
-            db.and_(
-                Notification.is_read == False,
-                db.or_(
-                    Notification.for_user == user_id,
-                    Notification.for_role.like(f"%{user.role}%")
-                )
-            )
-        ).count()
+        # ✅ Always filter by user_id (new system)
+        filtered_notifications = query.filter_by(user_id=user_id).order_by(Notification.created_at.desc()).all()
+        unread_count = Notification.query.filter_by(user_id=user_id, is_read=False).count()
 
     except Exception as e:
         print(f"Notification error: {str(e)}")
         filtered_notifications = []
         unread_count = 0
 
-    return render_template('notifications.html', 
-                           user=user, 
-                           all_notifications=filtered_notifications,
-                           unread_count=unread_count)
+    return render_template(
+        'notifications.html', 
+        user=user, 
+        all_notifications=filtered_notifications,
+        unread_count=unread_count
+    )
+
 
 
 
@@ -2112,104 +2081,126 @@ def manage_orders():
 def add_to_cart(product_id):
     if 'user_id' not in session:
         return jsonify({"error": "Please login first"}), 401
-    
+
     user = User.query.get(session['user_id'])
     if not user or user.role != 'customer':
         return jsonify({"error": "Only customers can add to cart"}), 403
-    
+
     product = Product.query.get_or_404(product_id)
-    
-    # Initialize cart in session if it doesn't exist
-    if 'cart' not in session:
-        session['cart'] = []
-    
-    # Check if product already in cart
-    cart = session['cart']
-    product_in_cart = False
-    
-    for item in cart:
-        if item['product_id'] == product_id:
-            item['quantity'] += 1
-            product_in_cart = True
-            break
-    
-    if not product_in_cart:
-        cart.append({
-            'product_id': product_id,
-            'name': product.name,
-            'price': product.unit_price,
-            'quantity': 1
-        })
-    
-    session['cart'] = cart
-    # Force the session to update
-    session.modified = True
-    
-    return jsonify({"success": True, "message": "Product added to cart", "cart_count": len(cart)}), 200
+
+    # Check if product already in cart for this user
+    existing_item = CartItem.query.filter_by(user_id=user.id, product_id=product_id).first()
+
+    if existing_item:
+        existing_item.quantity += 1
+    else:
+        new_item = CartItem(user_id=user.id, product_id=product_id, quantity=1)
+        db.session.add(new_item)
+
+    db.session.commit()
+
+    # Get updated cart count
+    cart_count = CartItem.query.filter_by(user_id=user.id).count()
+
+    return jsonify({"success": True, "message": "Product added to cart", "cart_count": cart_count}), 200
+
+
+
 # Add this route to view the cart
 @app.route('/cart')
 def view_cart():
     user_id = session.get('user_id')
     user = db.session.get(User, user_id) if user_id else None
-    
+
     if not user or user.role != 'customer':
         return redirect(url_for('login'))
-    
-    cart = session.get('cart', [])
-    total = sum(item['price'] * item['quantity'] for item in cart)
-    
-    return render_template('cart.html', user=user, cart=cart, total=total)
+
+    # Get items from DB
+    cart_items = CartItem.query.filter_by(user_id=user.id).all()
+
+    # Subtotal
+    product_total = sum(item.subtotal for item in cart_items)
+
+    # Fixed delivery charge
+    delivery_charge = 100
+
+    # Final total
+    total = product_total + delivery_charge
+
+    return render_template(
+        'cart.html',
+        user=user,
+        cart_items=cart_items,
+        product_total=product_total,
+        delivery_charge=delivery_charge,
+        total=total
+    )
+
+
 
 # Add this route to update cart quantities
 @app.route('/update-cart/<int:product_id>', methods=['POST'])
 def update_cart(product_id):
-    if 'user_id' not in session or 'cart' not in session:
-        return jsonify({"error": "Invalid session"}), 400
-    
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+
     quantity = request.json.get('quantity', 0)
-    
+    user_id = session['user_id']
+
+    cart_item = CartItem.query.filter_by(user_id=user_id, product_id=product_id).first()
+
+    if not cart_item:
+        return jsonify({"error": "Item not found"}), 404
+
     if quantity <= 0:
-        # Remove item from cart
-        session['cart'] = [item for item in session['cart'] if item['product_id'] != product_id]
+        db.session.delete(cart_item)
     else:
-        # Update quantity
-        for item in session['cart']:
-            if item['product_id'] == product_id:
-                item['quantity'] = quantity
-                break
-    
+        cart_item.quantity = quantity
+
+    db.session.commit()
     return jsonify({"success": True}), 200
+
 
 # Add this route to remove items from cart
 @app.route('/remove-from-cart/<int:product_id>', methods=['POST'])
+
 def remove_from_cart(product_id):
-    if 'cart' in session:
-        session['cart'] = [item for item in session['cart'] if item['product_id'] != product_id]
-    
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
+    item = CartItem.query.filter_by(user_id=user_id, product_id=product_id).first()
+
+    if item:
+        db.session.delete(item)
+        db.session.commit()
+
     return redirect(url_for('view_cart'))
+
 
 @app.route('/checkout', methods=['GET', 'POST'])
 def checkout():
     user_id = session.get('user_id')
     user = db.session.get(User, user_id)
-    
+
     if not user or user.role != 'customer':
         return redirect(url_for('login'))
-    
-    cart = session.get('cart', [])
-    if not cart:
+
+    cart_items = CartItem.query.filter_by(user_id=user.id).all()
+    if not cart_items:
         flash('Your cart is empty', 'warning')
         return redirect(url_for('shop'))
-    
-    total = sum(item['price'] * item['quantity'] for item in cart)
-    
+
+    product_total = sum(item.subtotal for item in cart_items)
+    delivery_charge = 100
+    total = product_total + delivery_charge
+
     if request.method == 'POST':
         shipping_address = request.form.get('shipping_address')
         if not shipping_address:
             flash('Shipping address is required', 'danger')
-            return render_template('checkout.html', user=user, cart=cart, total=total)
-        
-        # Create a new order
+            return render_template('checkout.html', user=user, cart_items=cart_items, product_total=product_total, delivery_charge=delivery_charge, total=total)
+
         new_order = Order(
             customer_id=user.id,
             status='Pending',
@@ -2218,34 +2209,29 @@ def checkout():
             order_date=datetime.utcnow()
         )
         db.session.add(new_order)
-        db.session.flush()  # This assigns an ID to new_order
-        
-        # Add order items
-        for item in cart:
-            product = Product.query.get(item['product_id'])
+        db.session.flush()
+
+        for item in cart_items:
+            product = Product.query.get(item.product_id)
             if product:
                 order_item = OrderItem(
                     order_id=new_order.id,
                     product_id=product.id,
-                    quantity=item['quantity'],
+                    quantity=item.quantity,
                     price=product.unit_price
                 )
                 db.session.add(order_item)
-                
-                # Update product quantity (optional)
-                product.quantity = max(0, product.quantity - item['quantity'])
-        
+                product.quantity = max(0, product.quantity - item.quantity)
+
+        # ✅ Clear cart from DB
+        CartItem.query.filter_by(user_id=user.id).delete()
         db.session.commit()
-        
-        # Clear the cart
-        session.pop('cart', None)
-        
+
         flash('Order placed successfully!', 'success')
-        # return redirect(url_for('order_confirmation', order_id=new_order.id))
         return redirect(url_for('track_customer_orders'))
 
-    
-    return render_template('checkout.html', user=user, cart=cart, total=total)
+    return render_template('checkout.html', user=user, cart_items=cart_items, product_total=product_total, delivery_charge=delivery_charge, total=total)
+
 
 # Add this route to debug the cart
 @app.route('/debug-cart')
@@ -2341,12 +2327,12 @@ def delivery_update_order_status(order_id):
             message=f"Your order is now marked as '{new_status}' by the delivery man.",
             category="order_update",
             priority="normal" if new_status != "Delivered" else "high",
-            for_user=order.customer_id,
-            for_role="customer",
+            user_id=order.customer_id,         # ✅ Correct foreign key to link notification to user
             is_read=False,
             created_at=datetime.utcnow(),
             created_by=user.id
         )
+
         db.session.add(notification)
         
         
