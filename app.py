@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from models import db, User, Product, Order, OrderItem, DeliveryIssue, DeliveryPayment, Batch, Vaccination, Production, FeedLog, Sale, Invoice, PriorityLevel, PoultryBatch, HealthCheck, Notification, Task, Feeding, CartItem
+from models import db, User, Product, Order, OrderItem, DeliveryIssue, DeliveryPayment, Batch, Vaccination, Production, FeedLog, Sale, Invoice, PriorityLevel, PoultryBatch, HealthCheck, Notification, Task, Feeding, Salary, CartItem
 from config import Config
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
@@ -15,6 +15,8 @@ from reportlab.pdfgen import canvas
 import io
 from flask_migrate import Migrate
 from models import db, User, Order, DeliveryPayment
+from sqlalchemy import func
+
 
 
 #updated 24th april
@@ -852,11 +854,20 @@ def customer_dashboard():
     user = db.session.get(User, user_id)
 
     if not user or user.role != 'customer':
-        return redirect(url_for('home'))
+        return redirect(url_for('login'))
 
-    
-    notifications = Notification.query.filter_by(user_id=user_id).order_by(Notification.created_at.desc()).all()
-    unread_count = Notification.query.filter_by(user_id=user_id, is_read=False).count()
+    # Fetch notifications for this customer
+    notifications = Notification.query.filter(
+        (Notification.for_user == user.id) |
+        (Notification.for_role == 'customer')
+    ).order_by(Notification.created_at.desc()).all()
+
+    # Count unread notifications
+    unread_count = Notification.query.filter(
+        ((Notification.for_user == user.id) |
+         (Notification.for_role == 'customer')) &
+        (Notification.is_read == False)
+    ).count()
 
     return render_template(
         'customer_dashboard.html',
@@ -864,6 +875,7 @@ def customer_dashboard():
         notifications=notifications,
         unread_count=unread_count
     )
+
 
 
 
@@ -1249,12 +1261,10 @@ def login():
 
 
 
-@app.route('/logout')
+@app.route('/logout', methods=['GET', 'POST'])
 def logout():
-    session.pop('user_id', None)
-    session.pop('cart', None)  
-    return redirect(url_for('login'))
-
+    session.pop('user_id', None)  # Clear the session
+    return redirect(url_for('home'))  # Redirect to the homepage (index.html)
 
 
 
@@ -1699,27 +1709,45 @@ def notifications():
         return redirect(url_for('login'))
 
     try:
+        # Dynamic filtering
         query = Notification.query
+
         category_filter = request.args.get('category')
         if category_filter:
             query = query.filter_by(category=category_filter)
 
-        # ✅ Always filter by user_id (new system)
-        filtered_notifications = query.filter_by(user_id=user_id).order_by(Notification.created_at.desc()).all()
-        unread_count = Notification.query.filter_by(user_id=user_id, is_read=False).count()
+
+        if user.role in ['admin', 'manager']:
+            # Admins and managers see all
+            filtered_notifications = query.order_by(Notification.created_at.desc()).all()
+        else:
+            # Customers, Farmers, Delivery Men see only targeted notifications
+            filtered_notifications = query.filter(
+                db.or_(
+                    Notification.for_user == user_id,
+                    Notification.for_role.like(f"%{user.role}%")
+                )
+            ).order_by(Notification.created_at.desc()).all()
+
+        unread_count = Notification.query.filter(
+            db.and_(
+                Notification.is_read == False,
+                db.or_(
+                    Notification.for_user == user_id,
+                    Notification.for_role.like(f"%{user.role}%")
+                )
+            )
+        ).count()
 
     except Exception as e:
         print(f"Notification error: {str(e)}")
         filtered_notifications = []
         unread_count = 0
 
-    return render_template(
-        'notifications.html', 
-        user=user, 
-        all_notifications=filtered_notifications,
-        unread_count=unread_count
-    )
-
+    return render_template('notifications.html', 
+                           user=user, 
+                           all_notifications=filtered_notifications,
+                           unread_count=unread_count)
 
 
 
@@ -1862,7 +1890,7 @@ def vaccination_schedule():
     vaccinations = Vaccination.query.order_by(Vaccination.scheduled_date.desc()).all()
     return render_template('admin_manage_vaccinations.html', user=user, vaccinations=vaccinations, batches=batches)
 
-@app.route('/poultry-stock')
+# @app.route('/poultry-stock')
 # def poultry_stock():
 #     user_id = session.get('user_id')
 #     user = db.session.get(User, user_id)
@@ -2137,7 +2165,6 @@ def view_cart():
     )
 
 
-
 # Add this route to update cart quantities
 @app.route('/update-cart/<int:product_id>', methods=['POST'])
 def update_cart(product_id):
@@ -2160,7 +2187,6 @@ def update_cart(product_id):
     db.session.commit()
     return jsonify({"success": True}), 200
 
-
 # Add this route to remove items from cart
 @app.route('/remove-from-cart/<int:product_id>', methods=['POST'])
 
@@ -2176,8 +2202,6 @@ def remove_from_cart(product_id):
         db.session.commit()
 
     return redirect(url_for('view_cart'))
-
-
 @app.route('/checkout', methods=['GET', 'POST'])
 def checkout():
     user_id = session.get('user_id')
@@ -2231,7 +2255,6 @@ def checkout():
         return redirect(url_for('track_customer_orders'))
 
     return render_template('checkout.html', user=user, cart_items=cart_items, product_total=product_total, delivery_charge=delivery_charge, total=total)
-
 
 # Add this route to debug the cart
 @app.route('/debug-cart')
@@ -2327,12 +2350,12 @@ def delivery_update_order_status(order_id):
             message=f"Your order is now marked as '{new_status}' by the delivery man.",
             category="order_update",
             priority="normal" if new_status != "Delivered" else "high",
-            user_id=order.customer_id,         # ✅ Correct foreign key to link notification to user
+            for_user=order.customer_id,
+            for_role="customer",
             is_read=False,
             created_at=datetime.utcnow(),
             created_by=user.id
         )
-
         db.session.add(notification)
         
         
@@ -2416,6 +2439,54 @@ def admin_income():
                            weekly_deliveries=weekly_deliveries,
                            monthly_deliveries=monthly_deliveries,
                            chart_data=chart_data)
+
+@app.route('/admin/manage-salaries', methods=['GET', 'POST'])
+def manage_salaries():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user = User.query.get(session['user_id'])
+    if not user or user.role != 'admin':
+        return redirect(url_for('login'))
+
+    # Get latest salary per user
+    subquery = db.session.query(
+        Salary.user_id,
+        func.max(Salary.payment_date).label('latest_payment')
+    ).group_by(Salary.user_id).subquery()
+
+    salaries = db.session.query(Salary).join(
+        subquery,
+        (Salary.user_id == subquery.c.user_id) & (Salary.payment_date == subquery.c.latest_payment)
+    ).all()
+
+    users = User.query.filter(User.role.in_(['manager', 'delivery_man'])).all()
+
+    return render_template('admin_manage_salary.html', user=user, users=users, salaries=salaries)
+
+@app.route('/admin/add-salary', methods=['POST'])
+def add_salary():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user = User.query.get(session['user_id'])
+    if not user or user.role != 'admin':
+        return redirect(url_for('login'))
+
+    user_id = request.form.get('user_id')
+    amount = float(request.form.get('amount'))
+    payment_date = datetime.strptime(request.form.get('payment_date'), '%Y-%m-%d').date()
+
+    new_salary = Salary(
+        user_id=user_id,
+        amount=amount,
+        payment_date=payment_date
+    )
+    db.session.add(new_salary)
+    db.session.commit()
+
+    flash('Salary record added successfully!', 'success')
+    return redirect(url_for('manage_salaries'))
 
 
 #=================== 1st may 2025

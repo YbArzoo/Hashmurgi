@@ -285,7 +285,6 @@ class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
     message = db.Column(db.Text, nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     category = db.Column(db.String(50), nullable=False)  # 'count_update', 'health_check', 'system', etc.
     priority = db.Column(db.String(20), default='normal')  # 'low', 'normal', 'high', 'urgent'
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -301,10 +300,21 @@ class Notification(db.Model):
     
     def __repr__(self):
         return f'<Notification {self.title}>'
-    
-    
 
-# 05-May-2025 Arzoo
+## Adding new class for keep tracking about salaries.(Puspita)
+
+class Salary(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    payment_date = db.Column(db.Date, nullable=False)
+
+    user = db.relationship('User', backref='salaries')
+
+    def __repr__(self):
+        return f"<Salary {self.amount} for {self.user.name} on {self.payment_date}>"
+
+# Arzoo
 class CartItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
