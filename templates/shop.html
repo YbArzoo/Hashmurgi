@@ -74,9 +74,11 @@
             <div class="flex justify-between items-center mt-4">
               <span class="text-green-600 font-bold">৳{{ product.unit_price }}</span>
               <form action="{{ url_for('add_to_cart', product_id=product.id) }}" method="POST">
-                <button type="submit" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">
-                  Add to Cart
+                <button type="button" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
+                    onclick="addToCart({{ product.id }})">
+                    Add to Cart
                 </button>
+        
               </form>
               
             </div>
@@ -113,37 +115,31 @@
 
   <script>
     function addToCart(productId) {
-      // Check if user is logged in
-      {% if user and user.role == 'customer' %}
-        // Add product to the cart
-        fetch('/add-to-cart/' + productId, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            alert('Product added to cart');
-            // Update cart count
-            const cartCountElement = document.getElementById('cart-count');
-            if (cartCountElement) {
-              cartCountElement.textContent = data.cart_count;
-            }
-          } else {
-            alert(data.error || 'Error adding product to cart');
+      fetch('/add-to-cart/' + productId, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert(data.message);
+          // Optional: update cart badge count
+          const countElement = document.getElementById('cart-count');
+          if (countElement) {
+            countElement.innerText = data.cart_count;
           }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          alert('Error adding product to cart');
-        });
-      {% else %}
-        alert('Please login or register to add items to your cart.');
-        window.location.href = "{{ url_for('login') }}";  // Redirect to login page
-      {% endif %}
+        } else {
+          alert("Failed to add product to cart.");
+        }
+      })
+      .catch(error => {
+        alert("Error adding product to cart.");
+        console.error(error);
+      });
     }
-  </script>
+    </script>
+    
 </body>
 </html>

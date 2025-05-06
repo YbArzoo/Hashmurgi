@@ -2788,8 +2788,44 @@ def assign_task():
 
 
 
+#06-May-2025
+
+@app.route('/create-checkout-session', methods=['POST'])
+def create_checkout_session():
+    data = request.get_json()
+    total_amount = int(float(data['total']) * 100)  # Stripe expects cents
+
+    try:
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'unit_amount': total_amount,
+                    'product_data': {
+                        'name': 'HashMurgi Order',
+                    },
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=url_for('payment_success', _external=True),
+            cancel_url=url_for('payment_cancel', _external=True),
+        )
+        return jsonify({'url': session.url})
+    except Exception as e:
+        return jsonify(error=str(e)), 400
 
 
+
+
+@app.route('/payment-success')
+def payment_success():
+    return render_template('payment_success.html')
+
+@app.route('/payment-cancel')
+def payment_cancel():
+    return render_template('payment_cancel.html')
 
 
 
