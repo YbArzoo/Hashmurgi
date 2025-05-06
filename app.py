@@ -1,6 +1,8 @@
 import requests
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, redirect, url_for
 import os
+from dotenv import load_dotenv
+import stripe
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from models import db, User, Product, Order, OrderItem, DeliveryIssue, DeliveryPayment, Batch, Vaccination, Production, FeedLog, Sale, Invoice, PriorityLevel, PoultryBatch, HealthCheck, Notification, Task, Feeding, Salary, CartItem
@@ -26,6 +28,14 @@ app = Flask(__name__)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'  # This sets the SQLite database file
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # Optional: disables a feature that's not necessary
+
+
+app.config.from_object(Config)
+
+app.secret_key = app.config['SECRET_KEY']
+load_dotenv()  # Load from .env file
+stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+
 
 migrate = Migrate(app, db)
 app.secret_key = os.urandom(24)
