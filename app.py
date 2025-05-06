@@ -18,7 +18,8 @@ import io
 from flask_migrate import Migrate
 from models import db, User, Order, DeliveryPayment
 from sqlalchemy import func
-
+from sqlalchemy.orm import joinedload
+from flask import jsonify
 
 
 #updated 24th april
@@ -319,11 +320,12 @@ def manage_feed_resources():
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
-    # user = User.query.get(session['user_id'])
     user = db.session.get(User, session['user_id'])
-
-    if not user or user.role not in ['admin', 'manager']:  # ✅ allow both
+    if not user or user.role not in ['admin', 'manager']:
         return redirect(url_for('login'))
+
+    # ✅ Detect source (admin_panel or default)
+    source = request.args.get('source', 'poultry_stock')
 
     batches = Batch.query.all()
 
@@ -335,7 +337,6 @@ def manage_feed_resources():
         cost = float(request.form['cost'])
         notes = request.form['notes']
 
-        # ✅ Flag critical low-feed logs
         priority = PriorityLevel.high if quantity_kg < 50 else PriorityLevel.medium
 
         feed_entry = FeedLog(
@@ -349,10 +350,13 @@ def manage_feed_resources():
         )
         db.session.add(feed_entry)
         db.session.commit()
-        return redirect(url_for('manage_feed_resources'))
+
+        # ✅ Redirect with source tracking
+        return redirect(url_for('manage_feed_resources', source=source))
 
     logs = FeedLog.query.order_by(FeedLog.log_date.desc()).all()
-    return render_template('admin_manage_feed.html', user=user, logs=logs, batches=batches)
+    return render_template('admin_manage_feed.html', user=user, logs=logs, batches=batches, source=source)
+
 
 @app.route('/admin/record-sales', methods=['GET', 'POST'])
 def record_sales():
@@ -610,9 +614,11 @@ def manager_dashboard():
             (db.cast(Product.id, db.String).ilike(f'%{query}%'))
         ).order_by(Product.id.desc()).all()
     else:
+        # Show the most recent 5 products with full details
         products = Product.query.order_by(Product.id.desc()).limit(5).all()
 
-    return render_template('manager-dashboard.html', user=user, products=products, query=query)
+    return render_template('manager-dashboard.html', user=user, recent_products=products, query=query)
+
 
 
 
@@ -623,50 +629,42 @@ def add_product():
         return redirect(url_for('login'))
 
     user = db.session.get(User, user_id)
-    
     if not user:
         return redirect(url_for('login'))
-
-    success = None
-    error = None
-
-    # Fetch all existing products for display in the template
-    products = Product.query.all()
 
     if request.method == 'POST':
         name = request.form.get('name')
         category = request.form.get('category')
         quantity = request.form.get('quantity')
         unit_price = request.form.get('unit_price')
-        product_description = request.form.get('product_description')
+        description = request.form.get('product_description')
 
-        # Handle image upload
         image = request.files.get('image')
         image_filename = None
         if image and allowed_file(image.filename):
             image_filename = secure_filename(image.filename)
-            image.save(os.path.join(app.config['UPLOAD_FOLDER'], image_filename))  # Save image to static/images
+            image.save(os.path.join(app.config['UPLOAD_FOLDER'], image_filename))
 
         try:
-            # Add new product to DB
             new_product = Product(
                 name=name,
                 category=category,
                 quantity=int(quantity),
                 unit_price=float(unit_price),
-                product_description=product_description,
-                image=image_filename,  # Save filename in DB
+                product_description=description,
+                image=image_filename,
                 added_by=user.id
             )
             db.session.add(new_product)
             db.session.commit()
-            success = "Product added successfully!"
+            flash("Product added successfully!", "success")
+            return redirect(url_for('add_product'))  # PRG pattern
         except Exception as e:
             db.session.rollback()
-            success = f"Error: {str(e)}"
+            flash(f"Error while adding product: {str(e)}", "danger")
 
-    # Render the page with success, error, and products
-    return render_template('add-product.html', user=user, success=success, error=error, products=products)
+    products = Product.query.order_by(Product.id.desc()).all()
+    return render_template('add-product.html', user=user, products=products)
 
 
 
@@ -754,7 +752,7 @@ def manage_vaccinations():
 
     if request.method == 'POST':
         batch_id = request.form['batch_id']
-        vaccine_name = request.form['vaccine_name'].strip().lower()  # Normalize for duplicate check
+        vaccine_name = request.form['vaccine_name'].strip().lower()
         scheduled_date = datetime.strptime(request.form['scheduled_date'], '%Y-%m-%d').date()
         dosage = request.form.get('dosage', '').strip()
         administered_by = request.form.get('administered_by', '').strip()
@@ -763,20 +761,19 @@ def manage_vaccinations():
         priority_input = request.form.get('priority', 'medium')
         priority = PriorityLevel[priority_input]
 
-        # ❌ Prevent duplicate vaccine name for the same batch (case-insensitive)
+        # Prevent duplicate vaccine name for the same batch (case-insensitive)
         existing = Vaccination.query.filter(
             Vaccination.batch_id == batch_id,
-            db.func.lower(Vaccination.vaccine_name) == vaccine_name
+            func.lower(Vaccination.vaccine_name) == vaccine_name
         ).first()
 
         if existing:
             flash('⚠️ This vaccine has already been scheduled for this batch.', 'warning')
             return redirect(url_for('manage_vaccinations'))
 
-        # ✅ Create and save vaccination using formatted vaccine name
         new_vaccine = Vaccination(
             batch_id=batch_id,
-            vaccine_name=vaccine_name.title(),  # Store nicely formatted
+            vaccine_name=vaccine_name.title(),
             scheduled_date=scheduled_date,
             dosage=dosage,
             administered_by=administered_by,
@@ -791,12 +788,15 @@ def manage_vaccinations():
 
     today = date.today()
 
-    # Upcoming vaccinations (Scheduled and future date)
+    # Upcoming vaccinations (Scheduled and today or future)
     upcoming = (
         db.session.query(Vaccination)
         .join(Batch)
-        .filter(Vaccination.status == 'Scheduled', Vaccination.scheduled_date >= today)
-        .options(db.joinedload(Vaccination.batch))
+        .filter(
+            Vaccination.status == 'Scheduled',
+            Vaccination.scheduled_date >= today
+        )
+        .options(joinedload(Vaccination.batch))
         .order_by(Vaccination.scheduled_date.asc())
         .all()
     )
@@ -805,8 +805,11 @@ def manage_vaccinations():
     history = (
         db.session.query(Vaccination)
         .join(Batch)
-        .filter(Vaccination.status.in_(['Completed', 'Missed']), Vaccination.scheduled_date < today)
-        .options(db.joinedload(Vaccination.batch))
+        .filter(
+            Vaccination.status.in_(['Completed', 'Missed']),
+            Vaccination.scheduled_date < today
+        )
+        .options(joinedload(Vaccination.batch))
         .order_by(Vaccination.scheduled_date.desc())
         .all()
     )
@@ -820,15 +823,16 @@ def manage_vaccinations():
     )
 
 
-
 @app.route('/admin/production', methods=['GET', 'POST'])
 def manage_production():
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
     user = User.query.get(session['user_id'])
-    if not user or user.role not in ['admin', 'manager']:  # ✅ allow both
+    if not user or user.role not in ['admin', 'manager']:
         return redirect(url_for('login'))
+
+    source = request.args.get('from', 'poultry_stock')  # 👈 Default fallback
 
     batches = Batch.query.all()
 
@@ -838,7 +842,7 @@ def manage_production():
         egg_count = int(request.form['egg_count'])
         meat_weight_kg = float(request.form['meat_weight_kg'])
         notes = request.form['notes']
-        priority_input = request.form.get('priority', 'medium')  # ✅ NEW
+        priority_input = request.form.get('priority', 'medium')
         priority = PriorityLevel[priority_input]
 
         new_entry = Production(
@@ -851,10 +855,20 @@ def manage_production():
         )
         db.session.add(new_entry)
         db.session.commit()
-        return redirect(url_for('manage_production'))
+
+        # 👇 Preserve the source param on redirect
+        return redirect(url_for('manage_production', source_page=source))
+
 
     records = Production.query.order_by(Production.production_date.desc()).all()
-    return render_template('admin_manage_production.html', user=user, records=records, batches=batches)
+
+    return render_template(
+        'admin_manage_production.html',
+        user=user,
+        records=records,
+        batches=batches,
+        source=source  # 👈 Pass to template
+    )
 
 
 
@@ -1890,22 +1904,7 @@ def vaccination_schedule():
     vaccinations = Vaccination.query.order_by(Vaccination.scheduled_date.desc()).all()
     return render_template('admin_manage_vaccinations.html', user=user, vaccinations=vaccinations, batches=batches)
 
-# @app.route('/poultry-stock')
-# def poultry_stock():
-#     user_id = session.get('user_id')
-#     user = db.session.get(User, user_id)
 
-#     if not user or user.role != 'manager':
-#         return redirect(url_for('login'))
-
-#     # ✅ Sort batches by batch_id (i.e., batch name) in ascending order
-#     poultry_batches = PoultryBatch.query.order_by(PoultryBatch.batch_id.asc()).all()
-
-#     # ✅ Pass today's date for age calculation
-#     from datetime import datetime
-#     today = datetime.now().date()
-
-#     return render_template('poultry_stock.html', user=user, poultry_batches=poultry_batches, today=today)
 @app.route('/poultry-stock')
 def poultry_stock():
     user_id = session.get('user_id')
@@ -1914,16 +1913,28 @@ def poultry_stock():
     if not user or user.role != 'manager':
         return redirect(url_for('login'))
 
-    # Existing batch filter
+    # Filter inputs
     search = request.args.get('search', '').strip()
-    poultry_batches = PoultryBatch.query.filter(
-        (PoultryBatch.batch_id.ilike(f"%{search}%")) |
-        (PoultryBatch.bird_type.ilike(f"%{search}%")) |
-        (db.cast(PoultryBatch.arrival_date, db.String).ilike(f"%{search}%")) |
-        (PoultryBatch.status.ilike(f"%{search}%"))
-    ).order_by(PoultryBatch.created_at.desc()).limit(5).all() if search else PoultryBatch.query.order_by(PoultryBatch.created_at.desc()).limit(5).all()
+    bird_type_filter = request.args.get('bird_type', '').strip()
 
-    # Production filter
+    # 🐥 Enhanced Poultry Batch Filter
+    poultry_query = PoultryBatch.query
+
+    if search:
+        poultry_query = poultry_query.filter(
+            (PoultryBatch.batch_id.ilike(f"%{search}%")) |
+            (PoultryBatch.bird_type.ilike(f"%{search}%")) |
+            (PoultryBatch.location.ilike(f"%{search}%")) |  # ✅ location-based search
+            (db.cast(PoultryBatch.arrival_date, db.String).ilike(f"%{search}%")) |
+            (PoultryBatch.status.ilike(f"%{search}%"))
+        )
+
+    if bird_type_filter and bird_type_filter.lower() != 'all':
+        poultry_query = poultry_query.filter(PoultryBatch.bird_type == bird_type_filter)
+
+    poultry_batches = poultry_query.order_by(PoultryBatch.created_at.desc()).limit(5).all()
+
+    # 🥚 Production filter
     prod_search = request.args.get('prod_search', '').strip()
     productions = Production.query.join(Batch).filter(
         (Batch.batch_name.ilike(f"%{prod_search}%")) |
@@ -1932,23 +1943,122 @@ def poultry_stock():
         (db.cast(Production.meat_weight_kg, db.String).ilike(f"%{prod_search}%"))
     ).order_by(Production.production_date.desc()).all() if prod_search else Production.query.order_by(Production.production_date.desc()).limit(5).all()
 
-    # 🆕 Feed filter
+    # 📊 Total eggs and meat
+    total_eggs = sum(p.egg_count for p in productions)
+    total_meat = sum(p.meat_weight_kg for p in productions)
+
+    # 🍽️ Feed filter
     feed_search = request.args.get('feed_search', '').strip()
     feed_logs = FeedLog.query.join(Batch).filter(
         (db.cast(FeedLog.id, db.String).ilike(f"%{feed_search}%")) |
         (FeedLog.feed_type.ilike(f"%{feed_search}%")) |
         (Batch.batch_name.ilike(f"%{feed_search}%"))
     ).order_by(FeedLog.log_date.desc()).all() if feed_search else FeedLog.query.order_by(FeedLog.log_date.desc()).limit(5).all()
+    # Feed Summary
+    total_feed_qty = sum(f.quantity_kg for f in feed_logs)
+    total_feed_cost = sum(f.cost for f in feed_logs)
+
+
+    # 📦 Batch Summary by bird_type
+    batch_summary_raw = db.session.query(
+        PoultryBatch.bird_type,
+        func.count(PoultryBatch.id)
+    ).group_by(PoultryBatch.bird_type).all()
+    batch_summary = {bird_type: count for bird_type, count in batch_summary_raw}
 
     today = datetime.now().date()
-    return render_template('poultry_stock.html', user=user, today=today,
+    return render_template('poultry_stock.html',
+                           user=user,
+                           today=today,
                            poultry_batches=poultry_batches,
                            productions=productions,
                            feed_logs=feed_logs,
                            search=search,
+                           bird_type=bird_type_filter,
                            prod_search=prod_search,
-                           feed_search=feed_search)
+                           feed_search=feed_search,
+                           batch_summary=batch_summary,
+                           total_eggs=total_eggs,
+                           total_meat=total_meat,
+                           total_feed_qty=total_feed_qty,
+                           total_feed_cost=total_feed_cost)
 
+@app.route('/graph-analysis')
+def graph_analysis():
+    user_id = session.get('user_id')
+    user = db.session.get(User, user_id)
+    if not user or user.role not in ['admin', 'manager']:
+        return redirect(url_for('login'))
+
+    # Batch chart data (Bar Chart)
+    batch_data = db.session.query(PoultryBatch.bird_type, func.count(PoultryBatch.id)).group_by(PoultryBatch.bird_type).all()
+    batch_labels = [b[0] for b in batch_data]
+    batch_counts = [b[1] for b in batch_data]
+
+    # Production chart data (Area Chart)
+    prod_data = db.session.query(Production.batch_id, func.sum(Production.egg_count), func.sum(Production.meat_weight_kg)).group_by(Production.batch_id).all()
+    prod_labels = [str(p[0]) for p in prod_data]
+    egg_counts = [int(p[1] or 0) for p in prod_data]
+    meat_weights = [float(p[2] or 0) for p in prod_data]
+
+    # Feed chart data (Line Chart)
+    feed_data = db.session.query(FeedLog.batch_id, func.sum(FeedLog.quantity_kg), func.sum(FeedLog.cost)).group_by(FeedLog.batch_id).all()
+    feed_labels = [str(f[0]) for f in feed_data]
+    feed_qty = [float(f[1] or 0) for f in feed_data]
+    feed_cost = [float(f[2] or 0) for f in feed_data]
+
+    return render_template('graph_analysis.html',
+                           user=user,
+                           batch_labels=batch_labels,
+                           batch_counts=batch_counts,
+                           prod_labels=prod_labels,
+                           egg_counts=egg_counts,
+                           meat_weights=meat_weights,
+                           feed_labels=feed_labels,
+                           feed_qty=feed_qty,
+                           feed_cost=feed_cost)
+
+@app.route('/api/graph-data')
+def graph_data_api():
+    # User validation
+    user_id = session.get('user_id')
+    user = db.session.get(User, user_id)
+    if not user or user.role not in ['admin', 'manager']:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    # Batch data
+    batch_data = db.session.query(PoultryBatch.bird_type, func.count(PoultryBatch.id)).group_by(PoultryBatch.bird_type).all()
+    batch_labels = [b[0] for b in batch_data]
+    batch_counts = [b[1] for b in batch_data]
+
+    # Production data
+    prod_data = db.session.query(Production.batch_id, func.sum(Production.egg_count), func.sum(Production.meat_weight_kg)).group_by(Production.batch_id).all()
+    prod_labels = [str(p[0]) for p in prod_data]
+    egg_counts = [int(p[1] or 0) for p in prod_data]
+    meat_weights = [float(p[2] or 0) for p in prod_data]
+
+    # Feedlog data
+    feed_data = db.session.query(FeedLog.batch_id, func.sum(FeedLog.quantity_kg), func.sum(FeedLog.cost)).group_by(FeedLog.batch_id).all()
+    feed_labels = [str(f[0]) for f in feed_data]
+    feed_qty = [float(f[1] or 0) for f in feed_data]
+    feed_cost = [float(f[2] or 0) for f in feed_data]
+
+    return jsonify({
+        'batch_chart': {
+            'labels': batch_labels,
+            'counts': batch_counts
+        },
+        'production_chart': {
+            'labels': prod_labels,
+            'egg_counts': egg_counts,
+            'meat_weights': meat_weights
+        },
+        'feed_chart': {
+            'labels': feed_labels,
+            'feed_qty': feed_qty,
+            'feed_cost': feed_cost
+        }
+    })
 
 @app.route('/shop')
 def shop():

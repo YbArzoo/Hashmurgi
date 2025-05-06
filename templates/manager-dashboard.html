@@ -18,7 +18,10 @@
         </a>
         <!-- <a href="{{ url_for('poultry_stock') }}" class="block text-gray-700 hover:text-green-500">Poultry Stock</a> -->
         <a href="{{ url_for('assign_task') }}" class="block text-gray-700 hover:text-blue-500">Assign Task</a>
-
+        <a href="{{ url_for('graph_analysis') }}" class="block text-gray-700 hover:text-blue-500">
+          Stock Analysis
+        </a>
+        
         <a href="{{ url_for('notifications') }}" class="block text-gray-700 hover:text-green-500">Notifications</a>
         
         <!-- Add this line for logout -->
@@ -62,7 +65,7 @@
 
       <section class="bg-white p-6 rounded-lg shadow mt-6">
         <h3 class="text-xl font-bold text-gray-800 mb-4">Recent Products</h3>
-        {% if products %}
+        {% if recent_products %}
         <div class="overflow-x-auto">
           <table class="min-w-full bg-white border">
             <thead>
@@ -75,15 +78,16 @@
               </tr>
             </thead>
             <tbody>
-              {% for p in products %}
+              {% for product in recent_products %}
               <tr class="border-b">
-                <td class="py-2 px-4">{{ p.name }}</td>
-                <td class="py-2 px-4">{{ p.category }}</td>
-                <td class="py-2 px-4">৳{{ p.price }}</td>
-                <td class="py-2 px-4">{{ p.quantity }}</td>
-                <td class="py-2 px-4 text-sm">{{ p.description }}</td>
+                <td class="py-2 px-4">{{ product.name }}</td>
+                <td class="py-2 px-4">{{ product.category }}</td>
+                <td class="py-2 px-4">৳{{ product.unit_price }}</td>
+                <td class="py-2 px-4">{{ product.quantity }}</td>
+                <td class="py-2 px-4 text-sm">{{ product.product_description or 'No description' }}</td>
               </tr>
               {% endfor %}
+
             </tbody>
           </table>
         </div>

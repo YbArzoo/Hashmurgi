@@ -106,10 +106,12 @@
                 {% endfor %}
             </tbody>
         </table>
-        <!-- Back Button -->
-        <div class="flex space-x-4">
-            <a href="{{ url_for('admin_panel') if user.role == 'admin' else url_for('manager_dashboard') }}" class="bg-gray-500 text-white px-8 py-4 rounded hover:bg-gray-600">← Back</a>
-        </div>
+        {% if source == 'admin_panel' %}
+        <a href="{{ url_for('admin_panel') }}" class="bg-gray-500 text-white px-8 py-4 rounded hover:bg-gray-600">← Back</a>
+        {% else %}
+        <a href="{{ url_for('poultry_stock') }}" class="bg-gray-500 text-white px-8 py-4 rounded hover:bg-gray-600">← Back</a>
+        {% endif %}
+
 
 </body>
 </html>

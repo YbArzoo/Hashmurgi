@@ -37,51 +37,103 @@
           <a href="{{ url_for('manage_batches') }}" class="bg-blue-500 text-white px-2 py-2 rounded hover:bg-blue-600 text-center">Add New Batch</a>
           <!-- <a href="#" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 text-center">Transfer Stock</a> -->
           <a href="{{ url_for('vaccination_schedule') }}" class="bg-purple-500 text-white px-2 py-2 rounded hover:bg-blue-600 text-center">Vaccination Schedule</a>
-          <a href="{{ url_for('production_record') }}" class="bg-yellow-500 text-white px-2 py-2 rounded hover:bg-blue-600 text-center">Production Records</a>
+          <a href="{{ url_for('manage_production') }}" class="bg-yellow-500 text-white px-2 py-2 rounded hover:bg-blue-600 text-center">Production Records</a>
           <a href="{{ url_for('feed_resources') }}" class="bg-green-500 text-white px-2 py-2 rounded hover:bg-blue-600 text-center">Feed & Resources</a> 
         </div>
       </section>
 
-      <!-- Stock Summary -->
+            <!-- Stock Breakdown Tables -->
       <section class="bg-white p-6 rounded-lg shadow mb-6">
-        <h3 class="text-xl font-bold text-gray-800 mb-4">Stock Summary</h3>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
-            <h4 class="text-lg font-semibold text-blue-700">Total Birds</h4>
-            <p class="text-3xl font-bold text-blue-800">1,250</p>
-            <p class="text-sm text-blue-600 mt-1">Across all batches</p>
+        <h3 class="text-xl font-bold text-gray-800 mb-4">📊 Summary Breakdown</h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <!-- Batch Summary Table -->
+          <div>
+            <h4 class="text-lg font-semibold text-gray-700 mb-2">Batch Count by Type</h4>
+            <table class="min-w-full bg-white border text-sm">
+              <thead>
+                <tr class="bg-gray-100 text-left text-gray-700">
+                  <th class="p-2 border">Bird Type</th>
+                  <th class="p-2 border">Total Count</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for type, count in batch_summary.items() %}
+                <tr>
+                  <td class="p-2 border">{{ type }}</td>
+                  <td class="p-2 border">{{ count }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
-          <div class="bg-green-50 p-4 rounded-lg border border-green-100">
-            <h4 class="text-lg font-semibold text-green-700">Layers</h4>
-            <p class="text-3xl font-bold text-green-800">850</p>
-            <p class="text-sm text-green-600 mt-1">Egg production</p>
-          </div>
-          <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-100">
-            <h4 class="text-lg font-semibold text-yellow-700">Broilers</h4>
-            <p class="text-3xl font-bold text-yellow-800">350</p>
-            <p class="text-sm text-yellow-600 mt-1">Meat production</p>
-          </div>
-          <div class="bg-purple-50 p-4 rounded-lg border border-purple-100">
-            <h4 class="text-lg font-semibold text-purple-700">Chicks</h4>
-            <p class="text-3xl font-bold text-purple-800">50</p>
-            <p class="text-sm text-purple-600 mt-1">New additions</p>
+
+          <!-- Production Summary Table -->
+          <div>
+            <h4 class="text-lg font-semibold text-gray-700 mb-2">Production Totals</h4>
+            <table class="min-w-full bg-white border text-sm">
+              <thead>
+                <tr class="bg-gray-100 text-left text-gray-700">
+                  <th class="p-2 border">Type</th>
+                  <th class="p-2 border">Quantity</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="p-2 border">Eggs</td>
+                  <td class="p-2 border">{{ total_eggs }}</td>
+                </tr>
+                <tr>
+                  <td class="p-2 border">Meat (kg)</td>
+                  <td class="p-2 border">{{ total_meat }}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
-      </section>
 
+        <div>
+          <h4 class="text-lg font-semibold text-gray-700 mb-2">Feedlog Summary</h4>
+          <table class="min-w-full bg-white border text-sm">
+            <thead>
+              <tr class="bg-gray-100 text-left text-gray-700">
+                <th class="p-2 border">Metric</th>
+                <th class="p-2 border">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="p-2 border">Feed Quantity (kg)</td>
+                <td class="p-2 border">{{ total_feed_qty }}</td>
+              </tr>
+              <tr>
+                <td class="p-2 border">Feed Cost (BDT)</td>
+                <td class="p-2 border">{{ total_feed_cost }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+  
+      </section>
+      <!-- Feed Summary Table -->
+      
+            
       <!-- Batch Details -->
       <section class="bg-white p-6 rounded-lg shadow mb-6">
           <h3 class="text-xl font-bold text-gray-800 mb-4">Batch Details</h3>
-            <select class="p-2 border rounded text-sm">
-              <option>All Types</option>
-              <option>Layers</option>
-              <option>Broilers</option>
-              <option>Chicks</option> 
-            </select> 
-            <form method="GET" action="{{ url_for('poultry_stock') }}" class="flex items-center gap-2 mb-4">
-              <input type="text" name="search" value="{{ search or '' }}" placeholder="Search by Batch ID, Date, Type, Status" class="p-2 border rounded text-sm" />
-              <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-sm">Search</button>
+            <!-- Filter Form for Batch Type and Search -->
+            <form method="get" action="{{ url_for('poultry_stock') }}" class="mb-4 flex flex-wrap gap-4 items-center">
+              <input type="text" name="search" placeholder="Search batch or location..." value="{{ search }}"
+                     class="border rounded px-3 py-2 w-60">
+              <!-- <select name="bird_type" class="border rounded px-3 py-2">
+                <option value="" disabled selected>Select Type</option>
+                <option value="layer" {% if request.args.get('bird_type') == 'layer' %}selected{% endif %}>Layer</option>
+                <option value="broiler" {% if request.args.get('bird_type') == 'broiler' %}selected{% endif %}>Broiler</option>
+                <option value="chick" {% if request.args.get('bird_type') == 'chick' %}selected{% endif %}>Chick</option>
+              </select> -->
+              <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Search</button>
             </form>
+            
             
         <div class="overflow-x-auto">
           <table class="min-w-full bg-white border">
@@ -95,7 +147,7 @@
                 <th class="py-2 px-4 border-b">Arrival Date</th>
                 <th class="py-2 px-4 border-b">Location</th>
                 <th class="py-2 px-4 border-b">Status</th>
-                <th class="py-2 px-4 border-b">Actions</th>
+                <!-- <th class="py-2 px-4 border-b">Actions</th> -->
               </tr>
             </thead>
             <tbody>
@@ -127,10 +179,10 @@
                   {% endif %}
                 </td>
                 
-                <td class="py-2 px-4">
+                <!-- <td class="py-2 px-4">
                   <button class="text-blue-500 hover:text-blue-700 mr-2">View</button>
                   <button class="text-green-500 hover:text-green-700">Edit</button>
-                </td>
+                </td> -->
               </tr>
               {% else %}
               <tr><td colspan="9" class="text-center py-4 text-gray-500">No poultry batches found.</td></tr>
@@ -199,7 +251,7 @@
       
         <form method="GET" action="{{ url_for('poultry_stock') }}" class="flex items-center gap-2 mb-4">
           <input type="text" name="feed_search" value="{{ feed_search or '' }}"
-                 placeholder="Search by Feed ID, Type, or Batch ID"
+                 placeholder="Search by Batch ID"
                  class="p-2 border rounded text-sm w-full max-w-sm" />
           <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm">
             Search

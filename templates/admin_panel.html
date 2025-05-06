@@ -27,6 +27,9 @@
           Manage Orders
         </a>
       
+        <a href="{{ url_for('graph_analysis') }}" class="block text-gray-700 hover:text-blue-500">         
+          Stock Analysis
+        </a>
         
         
            
@@ -69,8 +72,12 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <a href="{{ url_for('manage_batches') }}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-center">Batch Details</a>
           <a href="{{ url_for('manage_vaccinations') }}" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 text-center">Manage Vaccination Schedule</a>
-          <a href="{{ url_for('manage_production') }}" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 text-center">Log Egg & Meat Production</a>
-          <a href="{{ url_for('manage_feed_resources') }}" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 text-center">Manage Feed & Resource Logs</a>
+          <a href="{{ url_for('manage_production') }}?from=admin_panel" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 text-center">
+            Log Egg & Meat Production
+          </a>
+          
+          <a href="{{ url_for('manage_feed_resources', source='admin_panel') }}" class="...">Manage Feed & Resource Logs</a>
+
         </div>
       </section>
 
