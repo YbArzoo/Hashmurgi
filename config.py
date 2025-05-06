@@ -4,3 +4,7 @@ class Config:
     SECRET_KEY = 'supersecretkey'
     SQLALCHEMY_DATABASE_URI = 'sqlite:///hashmurgi.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # ✅ Add Stripe Keys Here
+    STRIPE_PUBLIC_KEY = 'pk_test_51RLdGMGgeJKKMimmVhDfVQMnZCeb4Mu7PddGIRQFv4vF5TLR15VvhGF3K18Ov9POhGBQmtkJQx2w82Fz7FbHs6JW00V8bDLl2p'
+    STRIPE_SECRET_KEY = 'sk_test_51RLdGMGgeJKKMimm1yqJnr1xplrp0RfZs71vWgq5Gh5R49WY1VWPAaG3HMO0vcYSOMkUJlNqnQKVW0qhVK0N8Zp200SG3d7LAX'

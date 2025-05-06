@@ -1,6 +1,7 @@
 import requests
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, redirect, url_for
 import os
+import stripe
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from models import db, User, Product, Order, OrderItem, DeliveryIssue, DeliveryPayment, Batch, Vaccination, Production, FeedLog, Sale, Invoice, PriorityLevel, PoultryBatch, HealthCheck, Notification, Task, Feeding, CartItem
@@ -25,10 +26,15 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'  # This sets the SQLite database file
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # Optional: disables a feature that's not necessary
 
-migrate = Migrate(app, db)
-app.secret_key = os.urandom(24)
+
 app.config.from_object(Config)
+
+app.secret_key = app.config['SECRET_KEY']
+stripe.api_key = app.config['STRIPE_SECRET_KEY']
+
+migrate = Migrate(app, db)
 db.init_app(app)
+
 
 
 UPLOAD_FOLDER = 'static/images'
@@ -2711,6 +2717,47 @@ def assign_task():
 
     return render_template('admin_manager_assign_task.html', user=user, farmers=farmers, unread_count=unread_count)
 
+
+#===============================
+#06-May-2025 Arzoo
+
+
+
+
+@app.route('/create-checkout-session', methods=['POST'])
+def create_checkout_session():
+    try:
+        data = request.get_json()
+        total_amount = int(float(data['total']) * 100)  # in cents
+
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': 'HashMurgi Order',
+                    },
+                    'unit_amount': total_amount,
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=url_for('payment_success', _external=True),
+            cancel_url=url_for('payment_cancel', _external=True),
+        )
+        return jsonify(url=session.url)
+    except Exception as e:
+        return jsonify(error=str(e)), 400
+    
+    
+@app.route('/payment-success')
+def payment_success():
+    return render_template('payment_success.html')
+
+@app.route('/payment-cancel')
+def payment_cancel():
+    return render_template('payment_cancel.html')
 
 
 
