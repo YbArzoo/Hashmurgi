@@ -1560,12 +1560,11 @@ def feed_schedule():
             return redirect(url_for('login'))
             
         user = db.session.get(User, user_id)
-        if not user or user.role != 'farmer':
+        if not user or user.role not in ['farmer', 'admin', 'manager']:
             return redirect(url_for('login'))
-        
-        # Get today's date
+
         today = datetime.now().date()
-        
+
         if request.method == 'POST':
             feeding_id = request.form.get('feeding_id')
             action = request.form.get('action')
@@ -1579,13 +1578,9 @@ def feed_schedule():
                         feeding.completed_by = user_id
                         feeding.completed_at = datetime.utcnow()
                         
-                        # Create notification for admins and managers
-                        notification_title = f"Feeding Completed: {feeding.batch_id}"
-                        notification_message = f"Feed type: {feeding.feed_type}, Quantity: {feeding.quantity}kg. Completed by {user.name}."
-                        
                         notification = Notification(
-                            title=notification_title,
-                            message=notification_message,
+                            title=f"Feeding Completed: {feeding.batch_id}",
+                            message=f"Feed type: {feeding.feed_type}, Quantity: {feeding.quantity}kg. Completed by {user.name}.",
                             category='feeding',
                             priority='normal',
                             created_by=user_id,
@@ -1596,47 +1591,42 @@ def feed_schedule():
                         db.session.commit()
                         flash('Feeding marked as completed!', 'success')
                 except Exception as e:
-                    print(f"Error fetching tasks: {str(e)}")
+                    print(f"Error updating feeding: {str(e)}")
                     db.session.rollback()
                     flash('Error marking feeding as completed. Please try again.', 'error')
             
             return redirect(url_for('feed_schedule'))
-        
-        # Get today's feedings with error handling
+
         try:
             today_feedings = Feeding.query.filter(
                 Feeding.date == today
             ).order_by(Feeding.time.asc()).all()
         except Exception as e:
-            print(f"Error fetching tasks: {str(e)}")
+            print(f"Error fetching today's feedings: {str(e)}")
             today_feedings = []
-        
-        # Get upcoming feedings with error handling
+
         try:
             upcoming_feedings = Feeding.query.filter(
                 Feeding.date > today
             ).order_by(Feeding.date.asc(), Feeding.time.asc()).all()
         except Exception as e:
-            print(f"Error fetching tasks: {str(e)}")
+            print(f"Error fetching upcoming feedings: {str(e)}")
             upcoming_feedings = []
-        
-        # Get recent completed feedings with error handling
+
         try:
             completed_feedings = Feeding.query.filter(
                 Feeding.status == 'completed'
             ).order_by(Feeding.completed_at.desc()).limit(5).all()
         except Exception as e:
-            print(f"Error fetching tasks: {str(e)}")
+            print(f"Error fetching completed feedings: {str(e)}")
             completed_feedings = []
-        
-        # Get feed inventory (you might want to create a separate model for this)
+
         feed_inventory = [
             {"feed_type": "Layer Feed", "stock": 250, "unit": "kg", "threshold": 100, "last_restocked": "Apr 10, 2025", "status": "Adequate"},
             {"feed_type": "Broiler Feed", "stock": 120, "unit": "kg", "threshold": 100, "last_restocked": "Apr 8, 2025", "status": "Adequate"},
             {"feed_type": "Chick Starter", "stock": 50, "unit": "kg", "threshold": 75, "last_restocked": "Apr 5, 2025", "status": "Low Stock"}
         ]
-        
-        # Get unread notifications count
+
         try:
             unread_count = Notification.query.filter(
                 db.and_(
@@ -1644,29 +1634,29 @@ def feed_schedule():
                     db.or_(
                         Notification.for_user == user_id,
                         db.and_(
-                            Notification.for_role.like("%farmer%"),
-                            Notification.for_role != None
+                            Notification.for_role != None,
+                            Notification.for_role.ilike(f"%{user.role}%")
                         )
                     )
                 )
             ).count()
         except Exception as e:
-            print(f"Error fetching tasks: {str(e)}")
+            print(f"Error fetching unread notifications: {str(e)}")
             unread_count = 0
-        
-        return render_template('feed_schedule.html', 
-                              user=user, 
-                              today_feedings=today_feedings,
-                              upcoming_feedings=upcoming_feedings,
-                              completed_feedings=completed_feedings,
-                              feed_inventory=feed_inventory,
-                              today_date=today.strftime('%Y-%m-%d'),
-                              unread_count=unread_count)
-    except Exception as e:
-        print(f"Error fetching tasks: {str(e)}")
-        flash('An unexpected error occurred. Please try again.', 'error')
-        return redirect(url_for('farmer_dashboard'))
 
+        return render_template('feed_schedule.html',
+                               user=user,
+                               today_feedings=today_feedings,
+                               upcoming_feedings=upcoming_feedings,
+                               completed_feedings=completed_feedings,
+                               feed_inventory=feed_inventory,
+                               today_date=today.strftime('%Y-%m-%d'),
+                               unread_count=unread_count)
+    
+    except Exception as e:
+        print(f"General error in feed_schedule route: {str(e)}")
+        flash('An unexpected error occurred. Please try again.', 'error')
+        return redirect(url_for('login'))
 
 @app.route('/change-password', methods=['GET', 'POST'])
 def change_password():

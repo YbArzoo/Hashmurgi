@@ -22,16 +22,6 @@
 
         <a href="{{ url_for('admin_reported_issues') }}" class="block text-gray-700 hover:text-blue-500">
           Reported Issues
-        <a href="{{ url_for('record_sales') }}" class="block text-gray-700 hover:text-blue-500">
-          Record Sales
-        </a>
-        <a href="{{ url_for('manage_invoices') }}" class="block text-gray-700 hover:text-blue-500">
-          Manage Invoices
-        </a>
-        <a href="{{ url_for('generate_receipts') }}" class="block text-gray-700 hover:text-blue-500">
-          Generate Receipts
-        </a>
-        
 
         <a href="{{ url_for('manage_orders') }}" class="block text-gray-700 hover:text-blue-500">
           Manage Orders
@@ -87,10 +77,16 @@
       <!-- Financial Management Section -->
       <section class="bg-white p-6 rounded-lg shadow mb-6">
         <h3 class="text-xl font-bold text-gray-800 mb-4">Financial Sales Management</h3>
-        <ul class="list-disc pl-6 space-y-2 text-gray-700">
-          <div class="mb-4">
-            <a href="{{ url_for('record_sales') }}" class="inline-block bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <a href="{{ url_for('record_sales') }}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-center">
               Record New Sale
+            </a>
+            <a href="{{ url_for('manage_invoices') }}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-center">
+              Manage Invoices
+            </a>
+            <a href="{{ url_for('generate_receipts') }}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-center">
+              Generate Receipts
             </a>
           </div>
           
