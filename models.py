@@ -48,7 +48,8 @@ class Order(db.Model):
     shipping_address = db.Column(db.Text)
     order_date = db.Column(db.DateTime, default=datetime.utcnow)
     delivery_date = db.Column(db.DateTime)
-    
+    is_sale_recorded = db.Column(db.Boolean, default=False)
+
     # Add priority field
     priority = db.Column(db.Enum(PriorityLevel), default=PriorityLevel.medium)
 

@@ -42,7 +42,10 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <a href="{{ url_for('poultry_stock') }}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-center">Check Stock</a>
           <a href="{{ url_for('orders') }}" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 text-center">Track Orders</a>
-          <a href="#" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 text-center">Employee List</a>
+          <a href="{{ url_for('employee_list') }}" class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600 text-center">
+            Employee List
+          </a>
+          
           <a href="{{ url_for('add_product') }}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-center">
             Add Product
           </a>

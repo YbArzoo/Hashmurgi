@@ -1,0 +1,63 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Employee List</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+  <div class="max-w-6xl mx-auto bg-white rounded shadow p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold text-gray-800">Employee List</h2>
+      <a href="{{ url_for('admin_panel') if user.role == 'admin' else url_for('manager_dashboard') }}"
+         class="text-blue-500 hover:underline text-sm">← Back to Dashboard</a>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="min-w-full bg-white border border-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="py-2 px-4 border-b text-left">Photo</th>
+            <th class="py-2 px-4 border-b text-left">Full Name</th>
+            <th class="py-2 px-4 border-b text-left">Email</th>
+            <th class="py-2 px-4 border-b text-left">Phone</th>
+            <th class="py-2 px-4 border-b text-left">Role</th>
+            <th class="py-2 px-4 border-b text-left">Address</th>
+            <th class="py-2 px-4 border-b text-left">Blood Group</th>
+            {% if user.role == 'admin' %}
+            <th class="py-2 px-4 border-b text-left">Salary</th>
+            {% endif %}
+          </tr>
+        </thead>
+        
+        <tbody>
+          {% for emp in employees %}
+          <tr class="border-b hover:bg-gray-50">
+            <td class="py-2 px-4">
+              {% if emp.image %}
+                <img src="{{ url_for('static', filename=emp.image.replace('static/', '')) }}" alt="Profile" class="w-10 h-10 rounded-full object-cover">
+              {% else %}
+                <div class="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center text-sm text-white">N/A</div>
+              {% endif %}
+            </td>
+            <td class="py-2 px-4">{{ emp.name }}</td>
+            <td class="py-2 px-4">{{ emp.email }}</td>
+            <td class="py-2 px-4">{{ emp.phone or '—' }}</td>
+            <td class="py-2 px-4 capitalize">{{ emp.role }}</td>
+            <td class="py-2 px-4">{{ emp.address or '—' }}</td>
+            <td class="py-2 px-4">{{ emp.blood_group or '—' }}</td>
+            {% if user.role == 'admin' %}
+            <td class="py-2 px-4">
+              ৳{{ salary_map.get(emp.id, '—') }}
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+        
+      </table>
+    </div>
+  </div>
+</body>
+</html>

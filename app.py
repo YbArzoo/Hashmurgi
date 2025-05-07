@@ -20,6 +20,7 @@ from models import db, User, Order, DeliveryPayment
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 from flask import jsonify
+from sqlalchemy import and_
 
 
 #updated 24th april
@@ -395,6 +396,26 @@ def record_sales():
     return render_template('admin_record_sales.html', user=user, sales=sales, customers=customers, products=products)
 
 
+@app.route('/admin/invoices', methods=['GET', 'POST'])
+def manage_invoices():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user = User.query.get(session['user_id'])
+    if not user or user.role != 'admin':
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        invoice_id = request.form['invoice_id']
+        new_status = request.form['status']
+        invoice = Invoice.query.get(invoice_id)
+        if invoice:
+            invoice.status = new_status
+            db.session.commit()
+        return redirect(url_for('manage_invoices'))
+
+    invoices = Invoice.query.order_by(Invoice.issue_date.desc()).all()
+    return render_template('admin_manage_invoices.html', user=user, invoices=invoices)
 
 
 
@@ -414,6 +435,7 @@ def generate_receipts():
         source_type = request.form['source_type']  # "sale" or "order"
         record_id = int(request.form['record_id'])
 
+        # Create PDF in memory
         buffer = io.BytesIO()
         p = canvas.Canvas(buffer, pagesize=letter)
         p.setFont("Helvetica", 12)
@@ -434,8 +456,8 @@ def generate_receipts():
             p.drawString(50, 710, f"Total: BDT {order.total_amount}")
             p.drawString(50, 690, f"Order Date: {order.order_date.strftime('%Y-%m-%d')}")
             p.drawString(50, 670, f"Status: {order.status}")
-
-            # List items
+        
+        # List items
             y = 650
             p.drawString(50, y, "Items:")
             y -= 20
@@ -459,7 +481,6 @@ def generate_receipts():
         sales=sales,
         pending_orders=pending_orders
     )
-
 
 # Edit User Role (GET + POST)
 @app.route('/edit-user-role', methods=['GET', 'POST'])
@@ -2186,12 +2207,15 @@ def manage_orders():
 
         order = Order.query.get(order_id)
         if order:
+            status_changed_to_delivered = False
+
             if new_status:
+                # Check if status is being changed to Delivered
+                status_changed_to_delivered = (order.status != 'Delivered' and new_status == 'Delivered')
                 order.status = new_status
 
             if delivery_man_id:
                 new_dm_id = int(delivery_man_id)
-
                 if order.delivery_man_id != new_dm_id:
                     order.delivery_man_id = new_dm_id
 
@@ -2210,14 +2234,30 @@ def manage_orders():
                         )
                         db.session.add(notification)
 
-            db.session.commit()
+            # 🆕 Auto-record sales when status changes to Delivered
+            if status_changed_to_delivered and not getattr(order, 'is_sale_recorded', False):
+                for item in order.items:
+                    sale = Sale(
+                        customer_id=order.customer_id,
+                        product_id=item.product_id,
+                        quantity=item.quantity,
+                        total_amount=item.subtotal,
+                        sale_date=datetime.utcnow().date(),
+                        notes=f"Auto-recorded from delivered order #{order.id}"
+                    )
+                    db.session.add(sale)
 
+                # Mark this order as recorded (requires DB column)
+                order.is_sale_recorded = True
+
+            db.session.commit()
 
     # Fetch again sorted by priority and order date
     orders = Order.query.order_by(Order.priority.desc(), Order.order_date.desc()).all()
     delivery_men = User.query.filter_by(role='delivery_man').all()
 
     return render_template('admin_manager_orders.html', user=user, orders=orders, delivery_men=delivery_men)
+
 
 
 @app.route('/add-to-cart/<int:product_id>', methods=['POST'])
@@ -2555,29 +2595,49 @@ def admin_income():
                            monthly_deliveries=monthly_deliveries,
                            chart_data=chart_data)
 
+
 @app.route('/admin/manage-salaries', methods=['GET', 'POST'])
 def manage_salaries():
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
-    user = User.query.get(session['user_id'])
+    user = db.session.get(User, session['user_id'])
     if not user or user.role != 'admin':
         return redirect(url_for('login'))
 
-    # Get latest salary per user
-    subquery = db.session.query(
-        Salary.user_id,
-        func.max(Salary.payment_date).label('latest_payment')
-    ).group_by(Salary.user_id).subquery()
+    role_filter = request.args.get('role', '')
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
 
-    salaries = db.session.query(Salary).join(
-        subquery,
-        (Salary.user_id == subquery.c.user_id) & (Salary.payment_date == subquery.c.latest_payment)
-    ).all()
+    query = Salary.query.join(User)
 
-    users = User.query.filter(User.role.in_(['manager', 'delivery_man'])).all()
+    if role_filter:
+        query = query.filter(User.role == role_filter)
+    if start_date and end_date:
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+        query = query.filter(and_(Salary.payment_date >= start_dt, Salary.payment_date <= end_dt))
 
-    return render_template('admin_manage_salary.html', user=user, users=users, salaries=salaries)
+    query = query.order_by(Salary.payment_date.desc())
+
+    # Pagination
+    page = request.args.get('page', 1, type=int)
+    per_page = 5
+    paginated_salaries = query.paginate(page=page, per_page=per_page)
+
+    users = User.query.filter(User.role.in_(['manager', 'delivery_man', 'farmer'])).all()
+
+    return render_template(
+        'admin_manage_salary.html',
+        user=user,
+        users=users,
+        salaries=paginated_salaries.items,
+        pagination=paginated_salaries,
+        role_filter=role_filter,
+        start_date=start_date,
+        end_date=end_date
+    )
+
 
 @app.route('/admin/add-salary', methods=['POST'])
 def add_salary():
@@ -2898,11 +2958,6 @@ def assign_task():
     return render_template('admin_manager_assign_task.html', user=user, farmers=farmers, unread_count=unread_count)
 
 
-
-
-
-
-
 #06-May-2025
 
 @app.route('/create-checkout-session', methods=['POST'])
@@ -2942,6 +2997,32 @@ def payment_success():
 def payment_cancel():
     return render_template('payment_cancel.html')
 
+## Show Employee List
+@app.route('/employee-list')
+def employee_list():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user = db.session.get(User, session['user_id'])
+
+    if not user or user.role not in ['admin', 'manager']:
+        return redirect(url_for('login'))
+
+    employees = User.query.filter(User.role.in_(['admin', 'manager', 'farmer', 'delivery_man'])).all()
+
+    # Fetch latest salary per employee
+    salary_subq = db.session.query(
+        Salary.user_id,
+        func.max(Salary.payment_date).label("latest_date")
+    ).group_by(Salary.user_id).subquery()
+
+    salaries = db.session.query(Salary).join(
+        salary_subq,
+        (Salary.user_id == salary_subq.c.user_id) & (Salary.payment_date == salary_subq.c.latest_date)
+    ).all()
+    salary_map = {s.user_id: s.amount for s in salaries}
+
+    return render_template('employee_list.html', user=user, employees=employees, salary_map=salary_map)
 
 
 
