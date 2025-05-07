@@ -3108,8 +3108,10 @@ def employee_list():
 
 @app.context_processor
 def inject_user():
-    user_id = request.cookies.get('user_id')
-    user = User.query.get(user_id) if user_id else None
+    from models import User
+    user = None
+    if 'user_id' in session:
+        user = User.query.get(session['user_id'])
     return dict(user=user)
 
 
