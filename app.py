@@ -2324,7 +2324,8 @@ def add_to_cart(product_id):
 # Add this route to view the cart
 @app.route('/cart')
 def view_cart():
-    user_id = session.get('user_id')
+    user_id = request.cookies.get('user_id')
+
     user = db.session.get(User, user_id) if user_id else None
 
     if not user or user.role != 'customer':
@@ -2359,7 +2360,8 @@ def update_cart(product_id):
         return jsonify({"error": "Not logged in"}), 401
 
     quantity = request.json.get('quantity', 0)
-    user_id = session['user_id']
+    user_id = request.cookies.get('user_id')
+
 
     cart_item = CartItem.query.filter_by(user_id=user_id, product_id=product_id).first()
 
@@ -2381,7 +2383,8 @@ def remove_from_cart(product_id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
-    user_id = session['user_id']
+    user_id = request.cookies.get('user_id')
+
     item = CartItem.query.filter_by(user_id=user_id, product_id=product_id).first()
 
     if item:
