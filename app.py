@@ -3106,6 +3106,14 @@ def employee_list():
     return render_template('employee_list.html', user=user, employees=employees, salary_map=salary_map)
 
 
+@app.context_processor
+def inject_user():
+    user_id = request.cookies.get('user_id')
+    user = User.query.get(user_id) if user_id else None
+    return dict(user=user)
+
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
