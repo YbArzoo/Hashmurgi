@@ -10,10 +10,12 @@
     <div class="max-w-3xl mx-auto bg-white p-6 rounded shadow">
         <h1 class="text-2xl font-bold mb-6">Generate PDF Receipt</h1>
 
-        <form method="POST" action="/admin/receipts" class="space-y-6">
+        <!-- Section 1: Admin-Recorded Sales -->
+        <form method="POST" action="/admin/receipts" class="space-y-6 mb-8">
+            <input type="hidden" name="source_type" value="sale">
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Select Sale</label>
-                <select name="sale_id" required class="w-full p-2 border rounded">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Select Admin Sale</label>
+                <select name="record_id" required class="w-full p-2 border rounded">
                     {% for sale in sales %}
                         <option value="{{ sale.id }}">
                             Sale #{{ sale.id }} – {{ sale.customer.name }} ({{ sale.product.name }}, {{ sale.quantity }} pcs, BDT {{ sale.total_amount }})
@@ -24,10 +26,32 @@
 
             <div>
                 <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
-                Generate Receipt PDF
+                    Generate Sale Receipt PDF
                 </button>
             </div>
         </form>
+
+        <!-- Section 2: Pending Customer Orders -->
+        <form method="POST" action="/admin/receipts" class="space-y-6">
+            <input type="hidden" name="source_type" value="order">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Select Pending Customer Order</label>
+                <select name="record_id" required class="w-full p-2 border rounded">
+                    {% for order in pending_orders %}
+                        <option value="{{ order.id }}">
+                            Order #{{ order.id }} – {{ order.customer_name }} (BDT {{ order.total }}, Status: {{ order.status }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700">
+                    Generate Order Receipt PDF
+                </button>
+            </div>
+        </form>
+
 
         <p class="text-gray-500 mt-6 text-sm">A downloadable PDF will be automatically generated for the selected sale.</p>
     </div>

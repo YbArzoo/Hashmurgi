@@ -395,26 +395,6 @@ def record_sales():
     return render_template('admin_record_sales.html', user=user, sales=sales, customers=customers, products=products)
 
 
-@app.route('/admin/invoices', methods=['GET', 'POST'])
-def manage_invoices():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-
-    user = User.query.get(session['user_id'])
-    if not user or user.role != 'admin':
-        return redirect(url_for('login'))
-
-    if request.method == 'POST':
-        invoice_id = request.form['invoice_id']
-        new_status = request.form['status']
-        invoice = Invoice.query.get(invoice_id)
-        if invoice:
-            invoice.status = new_status
-            db.session.commit()
-        return redirect(url_for('manage_invoices'))
-
-    invoices = Invoice.query.order_by(Invoice.issue_date.desc()).all()
-    return render_template('admin_manage_invoices.html', user=user, invoices=invoices)
 
 
 
@@ -428,22 +408,41 @@ def generate_receipts():
         return redirect(url_for('login'))
 
     sales = Sale.query.all()
+    pending_orders = Order.query.filter_by(status='Pending').all()
 
     if request.method == 'POST':
-        sale_id = int(request.form['sale_id'])
-        sale = Sale.query.get(sale_id)
+        source_type = request.form['source_type']  # "sale" or "order"
+        record_id = int(request.form['record_id'])
 
-        # Create PDF in memory
         buffer = io.BytesIO()
         p = canvas.Canvas(buffer, pagesize=letter)
         p.setFont("Helvetica", 12)
 
-        p.drawString(50, 750, f"Receipt for Sale #{sale.id}")
-        p.drawString(50, 730, f"Customer: {sale.customer.name}")
-        p.drawString(50, 710, f"Product: {sale.product.name}")
-        p.drawString(50, 690, f"Quantity: {sale.quantity}")
-        p.drawString(50, 670, f"Total: BDT {sale.total_amount}")
-        p.drawString(50, 650, f"Sale Date: {sale.sale_date}")
+        if source_type == 'sale':
+            sale = Sale.query.get(record_id)
+            p.drawString(50, 750, f"Receipt for Sale #{sale.id}")
+            p.drawString(50, 730, f"Customer: {sale.customer.name}")
+            p.drawString(50, 710, f"Product: {sale.product.name}")
+            p.drawString(50, 690, f"Quantity: {sale.quantity}")
+            p.drawString(50, 670, f"Total: BDT {sale.total_amount}")
+            p.drawString(50, 650, f"Sale Date: {sale.sale_date}")
+
+        elif source_type == 'order':
+            order = Order.query.get(record_id)
+            p.drawString(50, 750, f"Receipt for Order #{order.id}")
+            p.drawString(50, 730, f"Customer: {order.customer_name}")
+            p.drawString(50, 710, f"Total: BDT {order.total_amount}")
+            p.drawString(50, 690, f"Order Date: {order.order_date.strftime('%Y-%m-%d')}")
+            p.drawString(50, 670, f"Status: {order.status}")
+
+            # List items
+            y = 650
+            p.drawString(50, y, "Items:")
+            y -= 20
+            for item in order.items:
+                line = f"{item.product.name} x{item.quantity} @ {item.price} = BDT {item.subtotal}"
+                p.drawString(60, y, line)
+                y -= 20
 
         p.showPage()
         p.save()
@@ -451,10 +450,16 @@ def generate_receipts():
 
         return make_response(buffer.getvalue(), {
             "Content-Type": "application/pdf",
-            "Content-Disposition": f"attachment; filename=receipt_{sale.id}.pdf"
+            "Content-Disposition": f"attachment; filename=receipt_{record_id}.pdf"
         })
 
-    return render_template('admin_generate_receipts.html', user=user, sales=sales)
+    return render_template(
+        'admin_generate_receipts.html',
+        user=user,
+        sales=sales,
+        pending_orders=pending_orders
+    )
+
 
 # Edit User Role (GET + POST)
 @app.route('/edit-user-role', methods=['GET', 'POST'])
