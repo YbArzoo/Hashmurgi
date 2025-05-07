@@ -2557,6 +2557,37 @@ def delivery_update_order_status(order_id):
 
     return render_template('update_order_status.html', user=user, order=order)
 
+@app.route('/delivery-map')
+def delivery_map():
+    user_id = session.get('user_id')
+    user = db.session.get(User, user_id)
+
+    
+    if not user or user.role != 'delivery_man':
+        return redirect(url_for('login'))
+    
+    # In a real application, you would fetch locations from the database
+    # For example:
+    # orders = Order.query.filter_by(delivery_man_id=user_id).all()
+    # locations = []
+    # for order in orders:
+    #     # You would need to have latitude and longitude stored or use a geocoding service
+    #     locations.append({
+    #         "order_id": order.id,
+    #         "customer_name": order.customer.name,
+    #         "address": order.address,
+    #         "status": order.status,
+    #         "lat": order.latitude,
+    #         "lng": order.longitude
+    #     })
+    
+    # For now, we'll use dummy data
+    locations = [
+        {"order_id": 1, "customer_name": "John Doe", "address": "123 Main St, Dhaka", "distance": 2.5, "status": "Pending", "lat": 23.8103, "lng": 90.4125},
+        {"order_id": 2, "customer_name": "Jane Smith", "address": "456 Park Ave, Dhaka", "distance": 3.8, "status": "In Transit", "lat": 23.8203, "lng": 90.4225}
+    ]
+    
+    return render_template('delivery_map.html', user=user, locations=locations)
 
 
 @app.route('/admin/income')
