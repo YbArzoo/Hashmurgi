@@ -63,8 +63,8 @@
       </section>
 
       <!-- Income Chart -->
-      <section class="bg-white p-6 rounded-lg shadow mb-6">
-        <h3 class="text-xl font-bold text-gray-800 mb-4">Income Trends</h3>
+      <!-- <section class="bg-white p-6 rounded-lg shadow mb-6">
+        <h3 class="text-xl font-semibold text-gray-800 mb-4">Income Trends</h3>
         <div class="flex justify-end mb-4">
           <select id="chart-period" class="border rounded p-2 text-sm">
             <option value="week">Last 7 Days</option>
@@ -73,9 +73,9 @@
           </select>
         </div>
         <div>
-          <canvas id="incomeChart" height="300"></canvas>
+          <canvas id="incomeChart" height="100"></canvas>
         </div>
-      </section>
+      </section> -->
 
       <!-- Payment History -->
       <section class="bg-white p-6 rounded-lg shadow">
@@ -96,7 +96,7 @@
                 {% for payment in payments %}
                 <tr class="border-b border-gray-200 hover:bg-gray-50">
                   <td class="py-3 px-6">{{ payment.id }}</td>
-                  <td class="py-3 px-6">{{ payment.date }}</td>
+                  <td class="py-3 px-6">{{ payment.payment_date.strftime('%Y-%m-%d') }}</td>
                   <td class="py-3 px-6">৳{{ payment.amount }}</td>
                   <td class="py-3 px-6">{{ payment.method }}</td>
                   <td class="py-3 px-6">
@@ -118,7 +118,7 @@
     </main>
   </div>
 
-  <script>
+  <!-- <script>
     // Get chart data from the server
     const chartData = {{ chart_data|tojson|safe }};
     
@@ -167,6 +167,6 @@
       
       incomeChart.update();
     });
-  </script>
+  </script> -->
 </body>
 </html>

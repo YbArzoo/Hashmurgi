@@ -6,7 +6,7 @@
       <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile</a>
       <a href="{{ url_for('daily_tasks') }}" class="block text-gray-700 hover:text-green-500">Daily Tasks</a>
       <a href="{{ url_for('poultry_status_farmer') }}" class="block text-gray-700 hover:text-green-500">Poultry Status</a>
-      <a href="{{ url_for('feed_schedule') }}" class="block text-gray-700 hover:text-green-500">Feed Schedule</a>
+      <!-- <a href="{{ url_for('feed_schedule') }}" class="block text-gray-700 hover:text-green-500">Feed Schedule</a> -->
       <a href="{{ url_for('notifications') }}" class="flex items-center text-gray-700 hover:text-green-500">
         <span class="flex-grow">Notifications</span>
         {% if unread_count > 0 %}<span class="bg-red-500 text-white text-xs rounded-full px-2 py-0.5">{{ unread_count }}</span>{% endif %}

@@ -95,6 +95,15 @@
               <option value="Cancelled" {% if order.status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
             </select>
           </div>
+          <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="delivery_charge">
+              Delivery Charge (৳)
+            </label>
+            <input type="number" step="0.01" name="delivery_charge" id="delivery_charge" 
+                   class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
+                   required />
+          </div>
+          
           
           <div class="mb-4">
             <label class="block text-gray-700 text-sm font-bold mb-2" for="notes">

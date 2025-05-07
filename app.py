@@ -395,6 +395,32 @@ def record_sales():
     sales = Sale.query.order_by(Sale.sale_date.desc()).all()
     return render_template('admin_record_sales.html', user=user, sales=sales, customers=customers, products=products)
 
+@app.route('/admin/sales-data')
+def sales_data():
+    period = request.args.get('period', 'week')
+    today = datetime.utcnow().date()
+
+    if period == 'week':
+        start_date = today - timedelta(days=6)
+    elif period == 'month':
+        start_date = today - timedelta(days=29)
+    elif period == 'year':
+        start_date = today - timedelta(days=364)
+    else:
+        start_date = today - timedelta(days=6)
+
+    sales = db.session.query(Sale.sale_date, db.func.sum(Sale.total_amount))\
+        .filter(Sale.sale_date >= start_date)\
+        .group_by(Sale.sale_date)\
+        .order_by(Sale.sale_date)\
+        .all()
+
+    data = {
+        'labels': [sale[0].strftime('%Y-%m-%d') for sale in sales],
+        'totals': [sale[1] for sale in sales]
+    }
+    return jsonify(data)
+
 
 @app.route('/admin/invoices', methods=['GET', 'POST'])
 def manage_invoices():
@@ -967,60 +993,67 @@ def delivery_dashboard():
 
 
 # Remove or comment out the first update_order_status function
-# @app.route('/update-order-status/<int:order_id>', methods=['GET', 'POST'])
-# def update_order_status(order_id):
+# @app.route('/delivery/update_status/<int:order_id>', methods=['GET', 'POST'])
+# def delivery_update_order_status(order_id):
+#     order = Order.query.get_or_404(order_id)
+
+#     if request.method == 'POST':
+#         new_status = request.form['status']
+#         order.status = new_status
+
+#         if new_status == 'Delivered' and not order.is_sale_recorded:
+#             for item in order.items:
+#                 sale = Sale(
+#                     customer_id=order.customer_id,
+#                     product_id=item.product_id,
+#                     quantity=item.quantity,
+#                     total_amount=item.subtotal,
+#                     sale_date=datetime.utcnow(),
+#                     notes=f"Auto-recorded from order #{order.id}"
+#                 )
+#                 db.session.add(sale)
+#             order.delivery_date = datetime.utcnow()
+#             order.is_sale_recorded = True
+
+#         db.session.commit()
+#         flash('Order status updated successfully.', 'success')
+#         return redirect(url_for('assigned_orders'))
+
+#     return render_template('update_order_status.html', order=order)
+
+
+
+# @app.route('/delivery-map')
+# def delivery_map():
 #     user_id = session.get('user_id')
 #     user = db.session.get(User, user_id)
-#     
-#     if not user or user.role != 'delivery_man':
-#         return redirect(url_for('login'))
-#     
-#     if request.method == 'POST':
-#         # In a real application, you would update the order in the database
-#         # For example:
-#         # order = Order.query.get(order_id)
-#         # if order and order.delivery_man_id == user_id:
-#         #     order.status = request.form.get('status')
-#         #     if order.status == 'Delivered':
-#         #         order.delivered_at = datetime.utcnow()
-#         #     db.session.commit()
-#         #     flash('Order status updated successfully!', 'success')
-#         
-#         flash('Order status updated successfully!', 'success')
-#     
-#     # Redirect back to assigned orders page
-#     return redirect(url_for('assigned_orders'))
-@app.route('/delivery-map')
-def delivery_map():
-    user_id = session.get('user_id')
-    user = db.session.get(User, user_id)
 
     
-    if not user or user.role != 'delivery_man':
-        return redirect(url_for('login'))
+#     if not user or user.role != 'delivery_man':
+#         return redirect(url_for('login'))
     
-    # In a real application, you would fetch locations from the database
-    # For example:
-    # orders = Order.query.filter_by(delivery_man_id=user_id).all()
-    # locations = []
-    # for order in orders:
-    #     # You would need to have latitude and longitude stored or use a geocoding service
-    #     locations.append({
-    #         "order_id": order.id,
-    #         "customer_name": order.customer.name,
-    #         "address": order.address,
-    #         "status": order.status,
-    #         "lat": order.latitude,
-    #         "lng": order.longitude
-    #     })
+#     # In a real application, you would fetch locations from the database
+#     # For example:
+#     # orders = Order.query.filter_by(delivery_man_id=user_id).all()
+#     # locations = []
+#     # for order in orders:
+#     #     # You would need to have latitude and longitude stored or use a geocoding service
+#     #     locations.append({
+#     #         "order_id": order.id,
+#     #         "customer_name": order.customer.name,
+#     #         "address": order.address,
+#     #         "status": order.status,
+#     #         "lat": order.latitude,
+#     #         "lng": order.longitude
+#     #     })
     
-    # For now, we'll use dummy data
-    locations = [
-        {"order_id": 1, "customer_name": "John Doe", "address": "123 Main St, Dhaka", "distance": 2.5, "status": "Pending", "lat": 23.8103, "lng": 90.4125},
-        {"order_id": 2, "customer_name": "Jane Smith", "address": "456 Park Ave, Dhaka", "distance": 3.8, "status": "In Transit", "lat": 23.8203, "lng": 90.4225}
-    ]
+#     # For now, we'll use dummy data
+#     locations = [
+#         {"order_id": 1, "customer_name": "John Doe", "address": "123 Main St, Dhaka", "distance": 2.5, "status": "Pending", "lat": 23.8103, "lng": 90.4125},
+#         {"order_id": 2, "customer_name": "Jane Smith", "address": "456 Park Ave, Dhaka", "distance": 3.8, "status": "In Transit", "lat": 23.8203, "lng": 90.4225}
+#     ]
     
-    return render_template('delivery_map.html', user=user, locations=locations)
+#     return render_template('delivery_map.html', user=user, locations=locations)
 
 @app.route('/report-issues')
 def report_issues():
@@ -1125,55 +1158,38 @@ from models import db, User, Order, DeliveryPayment
 
 @app.route('/delivery-income')
 def delivery_income():
-    # Retrieve user_id from session and check if user exists
+    from datetime import datetime, timedelta
+
     user_id = session.get('user_id')
     user = db.session.get(User, user_id)
-    
-    # If user is not found or the user is not a 'delivery_man', redirect to login
+
     if not user or user.role != 'delivery_man':
         return redirect(url_for('login'))
-    
-    # Get today's date
+
     today = datetime.now().date()
-    
-    # Calculate the start of the current month and week
-    month_start = datetime(today.year, today.month, 1).date()
-    week_start = today - timedelta(days=today.weekday())  # Monday of this week
-    
-    # Get completed orders for different time periods
-    monthly_orders = Order.query.filter(
-        Order.delivery_man_id == user_id,
-        Order.status == 'Delivered',
-        Order.delivery_date >= month_start
-    ).all()
-    
-    weekly_orders = Order.query.filter(
-        Order.delivery_man_id == user_id,
-        Order.status == 'Delivered',
-        Order.delivery_date >= week_start
-    ).all()
-    
-    daily_orders = Order.query.filter(
-        Order.delivery_man_id == user_id,
-        Order.status == 'Delivered',
-        Order.delivery_date == today
-    ).all()
-    
-    # Calculate income
-    monthly_income = sum(order.total_amount for order in monthly_orders)
-    weekly_income = sum(order.total_amount for order in weekly_orders)
-    daily_income = sum(order.total_amount for order in daily_orders)
-    
-    # Get payment history for this delivery man
-    payments = DeliveryPayment.query.filter_by(delivery_man_id=user_id).order_by(DeliveryPayment.payment_date.desc()).all()
-    
-    # Create chart data for the template
+    week_start = today - timedelta(days=today.weekday())
+    month_start = today.replace(day=1)
+
+    # Filter DeliveryPayments for this delivery man and 'Paid' status
+    all_payments = DeliveryPayment.query.filter_by(delivery_man_id=user_id, status='Paid').all()
+
+    # Filter by date
+    daily_payments = [p for p in all_payments if p.payment_date.date() == today]
+    weekly_payments = [p for p in all_payments if week_start <= p.payment_date.date() <= today]
+    monthly_payments = [p for p in all_payments if month_start <= p.payment_date.date() <= today]
+
+    # Income calculations
+    daily_income = sum(p.amount for p in daily_payments)
+    weekly_income = sum(p.amount for p in weekly_payments)
+    monthly_income = sum(p.amount for p in monthly_payments)
+
+    # Chart placeholders (can be replaced with real logic later)
     chart_data = {
         'weekly': {
             'labels': [(today - timedelta(days=i)).strftime('%a') for i in range(6, -1, -1)],
             'datasets': [{
                 'label': 'Daily Income',
-                'data': [0] * 7,  # Placeholder data - you would calculate real values
+                'data': [0] * 7,
                 'borderColor': 'rgb(75, 192, 192)',
                 'tension': 0.1
             }]
@@ -1182,7 +1198,7 @@ def delivery_income():
             'labels': [(today - timedelta(days=i)).strftime('%d %b') for i in range(29, -1, -1)],
             'datasets': [{
                 'label': 'Daily Income',
-                'data': [0] * 30,  # Placeholder data
+                'data': [0] * 30,
                 'borderColor': 'rgb(75, 192, 192)',
                 'tension': 0.1
             }]
@@ -1191,24 +1207,26 @@ def delivery_income():
             'labels': [(today.replace(day=1) - timedelta(days=i*30)).strftime('%b %Y') for i in range(11, -1, -1)],
             'datasets': [{
                 'label': 'Monthly Income',
-                'data': [0] * 12,  # Placeholder data
+                'data': [0] * 12,
                 'borderColor': 'rgb(75, 192, 192)',
                 'tension': 0.1
             }]
         }
     }
-    
-    # Pass all calculated values to the template
-    return render_template('delivery_income.html', 
-                           user=user, 
-                           monthly_income=monthly_income,
-                           monthly_deliveries=len(monthly_orders),
-                           weekly_income=weekly_income,
-                           weekly_deliveries=len(weekly_orders),
-                           daily_income=daily_income,
-                           daily_deliveries=len(daily_orders),
-                           payments=payments,
-                           chart_data=chart_data)  # Add chart_data here
+
+    return render_template(
+        'delivery_income.html',
+        user=user,
+        monthly_income=monthly_income,
+        monthly_deliveries=len(monthly_payments),
+        weekly_income=weekly_income,
+        weekly_deliveries=len(weekly_payments),
+        daily_income=daily_income,
+        daily_deliveries=len(daily_payments),
+        payments=all_payments,
+        chart_data=chart_data
+    )
+
 
 @app.route('/view-report/<int:report_id>')
 def view_report(report_id):
@@ -2236,6 +2254,10 @@ def manage_orders():
 
             # 🆕 Auto-record sales when status changes to Delivered
             if status_changed_to_delivered and not getattr(order, 'is_sale_recorded', False):
+            
+                if not order.total_amount or order.total_amount == 0:
+                    order.total_amount = sum(item.subtotal for item in order.items)
+
                 for item in order.items:
                     sale = Sale(
                         customer_id=order.customer_id,
@@ -2454,52 +2476,65 @@ def assigned_orders():
 @app.route('/update-order-status/<int:order_id>', methods=['GET', 'POST'])
 def delivery_update_order_status(order_id):
     print(f"DEBUG: Accessing delivery_update_order_status with order_id={order_id}")
+
     user_id = session.get('user_id')
     user = db.session.get(User, user_id)
-    
+
     if not user or user.role != 'delivery_man':
         return redirect(url_for('login'))
-    
+
     order = Order.query.get_or_404(order_id)
-    
+
     if order.delivery_man_id != user_id:
         flash('You are not authorized to update this order', 'danger')
         return redirect(url_for('assigned_orders'))
-    
+
     if request.method == 'POST':
         new_status = request.form.get('status')
         notes = request.form.get('notes', '')
 
-        print(f"DEBUG: Updating order {order_id} status to {new_status}")
-        
+        print(f"DEBUG: Updating order {order.id} status to {new_status}")
         order.status = new_status
-        
 
         if new_status == 'Delivered':
             order.delivery_date = datetime.utcnow()
 
+            # ✅ Get delivery charge from form
+            delivery_charge = float(request.form.get('delivery_charge', 0))
+
+            # ✅ Record sale if not done
+            if not order.is_sale_recorded:
+                for item in order.items:
+                    sale = Sale(
+                        customer_id=order.customer_id,
+                        product_id=item.product_id,
+                        quantity=item.quantity,
+                        total_amount=item.subtotal,
+                        sale_date=datetime.utcnow(),
+                        notes=f"Auto-recorded from order #{order.id}"
+                    )
+                    db.session.add(sale)
+                order.is_sale_recorded = True
+
+            # ✅ Create payment entry with delivery charge
             existing_payment = DeliveryPayment.query.filter_by(
                 delivery_man_id=user_id,
                 order_id=order.id
             ).first()
 
             if not existing_payment:
-                print(f"Creating payment for Order #{order.id} by Delivery Man #{user_id}")
                 payment = DeliveryPayment(
                     delivery_man_id=user_id,
                     order_id=order.id,
-                    amount=100,
+                    amount=delivery_charge,
                     method='Cash',
                     status='Completed',
                     payment_date=datetime.utcnow()
                 )
                 db.session.add(payment)
-                print("Payment prepared for commit.")
-            else:
-                print(f"Payment already exists for Order #{order.id}")
 
-                # Send notification to the customer about the new delivery status
-        
+
+        # ✅ Step 3: Notify customer
         notification = Notification(
             title=f"Order #{order.id} Status Updated",
             message=f"Your order is now marked as '{new_status}' by the delivery man.",
@@ -2512,11 +2547,11 @@ def delivery_update_order_status(order_id):
             created_by=user.id
         )
         db.session.add(notification)
-        
-        
+
+        # ✅ Commit all changes
         db.session.commit()
-        print(f"DB committed for order #{order.id} update.")
-        
+        print(f"DEBUG: DB committed for order {order.id} update.")
+
         flash('Order status updated successfully!', 'success')
         return redirect(url_for('assigned_orders'))
 
@@ -2524,42 +2559,40 @@ def delivery_update_order_status(order_id):
 
 
 
-#====================================== 23rd April Arzoo added
-
 @app.route('/admin/income')
 def admin_income():
+    # Ensure user is logged in
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    
+
+    # Fetch user and validate role
     user = User.query.get(session['user_id'])
-    if not user or user.role != 'admin':
+    if not user or user.role.lower() != 'admin':
         return redirect(url_for('login'))
 
     today = datetime.now().date()
     week_start = today - timedelta(days=today.weekday())
     month_start = today.replace(day=1)
 
-    # Fetch Sales and Payments for admin income
+    # Get all sales data
     sales = Sale.query.all()
     daily_income = sum(s.total_amount for s in sales if s.sale_date == today)
     weekly_income = sum(s.total_amount for s in sales if s.sale_date >= week_start)
     monthly_income = sum(s.total_amount for s in sales if s.sale_date >= month_start)
 
-    # For delivery man income
+    # Get all delivery payments
     delivery_payments = DeliveryPayment.query.order_by(DeliveryPayment.payment_date.desc()).all()
-
-    # Calculate monthly, weekly, and daily payment amounts for delivery men
-    monthly_deliveries = len([p for p in delivery_payments if p.payment_date.date() >= month_start])
-    weekly_deliveries = len([p for p in delivery_payments if p.payment_date.date() >= week_start])
     daily_deliveries = len([p for p in delivery_payments if p.payment_date.date() == today])
+    weekly_deliveries = len([p for p in delivery_payments if p.payment_date.date() >= week_start])
+    monthly_deliveries = len([p for p in delivery_payments if p.payment_date.date() >= month_start])
 
-    # Create chart data in a format that is JSON serializable
+    # Chart data — you can enhance later with actual historical records
     chart_data = {
         'weekly': {
             'labels': [(today - timedelta(days=i)).strftime('%a') for i in range(6, -1, -1)],
             'datasets': [{
                 'label': 'Daily Income',
-                'data': [daily_income] * 7,  # Replace with actual weekly data if needed
+                'data': [daily_income] * 7,
                 'borderColor': 'rgb(75, 192, 192)',
                 'tension': 0.1
             }]
@@ -2568,24 +2601,24 @@ def admin_income():
             'labels': [(today - timedelta(days=i)).strftime('%d %b') for i in range(29, -1, -1)],
             'datasets': [{
                 'label': 'Daily Income',
-                'data': [daily_income] * 30,  # Replace with actual monthly data if needed
+                'data': [daily_income] * 30,
                 'borderColor': 'rgb(75, 192, 192)',
                 'tension': 0.1
             }]
         },
         'yearly': {
-            'labels': [(today.replace(day=1) - timedelta(days=i*30)).strftime('%b %Y') for i in range(11, -1, -1)],
+            'labels': [(today.replace(day=1) - timedelta(days=30*i)).strftime('%b %Y') for i in range(11, -1, -1)],
             'datasets': [{
                 'label': 'Monthly Income',
-                'data': [monthly_income] * 12,  # Replace with actual yearly data if needed
+                'data': [monthly_income] * 12,
                 'borderColor': 'rgb(75, 192, 192)',
                 'tension': 0.1
             }]
         }
     }
 
-    return render_template('admin_income.html', 
-                           user=user, 
+    return render_template('admin_income.html',
+                           user=user,
                            daily_income=daily_income,
                            weekly_income=weekly_income,
                            monthly_income=monthly_income,

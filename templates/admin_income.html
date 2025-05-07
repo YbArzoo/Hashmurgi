@@ -86,48 +86,52 @@
           </select>
         </div>
         <div>
-          <canvas id="incomeChart" height="300"></canvas>
+          <canvas id="incomeChart" height="100"></canvas>
         </div>
       </section>
 
     </main>
   </div>
 
-  <script>
-    const chartData = {{ chart_data|tojson|safe }};
-    
-    const ctx = document.getElementById('incomeChart').getContext('2d');
-    let incomeChart = new Chart(ctx, {
-      type: 'line',
-      data: chartData.weekly,
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const ctx = document.getElementById('incomeChart').getContext('2d');
+  let chart;
+
+  async function fetchData(period = 'week') {
+    const res = await fetch(`/admin/sales-data?period=${period}`);
+    const data = await res.json();
+
+    if (chart) chart.destroy();
+
+    chart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: data.labels,
+        datasets: [{
+          label: 'Total Income (BDT)',
+          data: data.totals,
+          backgroundColor: 'rgba(54, 162, 235, 0.6)'
+        }]
+      },
       options: {
         responsive: true,
-        plugins: {
-          legend: { position: 'top' },
-          title: { display: true, text: 'Income - Last 7 Days' }
-        },
         scales: {
-          y: { beginAtZero: true, title: { display: true, text: 'Income (৳)' } }
+          y: {
+            beginAtZero: true
+          }
         }
       }
     });
+  }
 
-    document.getElementById('chart-period').addEventListener('change', function() {
-      const period = this.value;
+  document.getElementById('chart-period').addEventListener('change', function () {
+    fetchData(this.value);
+  });
 
-      if (period === 'week') {
-        incomeChart.data = chartData.weekly;
-        incomeChart.options.plugins.title.text = 'Income - Last 7 Days';
-      } else if (period === 'month') {
-        incomeChart.data = chartData.monthly;
-        incomeChart.options.plugins.title.text = 'Income - Last 30 Days';
-      } else if (period === 'year') {
-        incomeChart.data = chartData.yearly;
-        incomeChart.options.plugins.title.text = 'Income - Last 12 Months';
-      }
+  // Load default chart
+  fetchData('week');
+</script>
 
-      incomeChart.update();
-    });
-  </script>
 </body>
 </html>

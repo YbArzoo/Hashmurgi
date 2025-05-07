@@ -15,7 +15,7 @@
         <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile Management</a>
         <a href="{{ url_for('daily_tasks') }}" class="block text-gray-700 hover:text-green-500">Daily Tasks</a>
         <a href="{{ url_for('poultry_status_farmer') }}" class="block text-gray-700 hover:text-green-500">Poultry Status</a>
-        <a href="{{ url_for('feed_schedule') }}" class="block text-gray-700 hover:text-green-500">Feed Schedule</a>
+        <!-- <a href="{{ url_for('feed_schedule') }}" class="block text-gray-700 hover:text-green-500">Feed Schedule</a> -->
         <a href="{{ url_for('notifications') }}" class="flex items-center text-gray-700 hover:text-green-500">
           <span class="flex-grow">Notifications</span>
           {% if unread_count > 0 %}
@@ -45,7 +45,7 @@
       <section class="bg-white p-6 rounded-lg shadow mb-6">
         <h3 class="text-xl font-bold text-gray-800 mb-4">Today's Overview</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <a href="{{ url_for('feed_schedule') }}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-center">Feed Chickens</a>
+          <!-- <a href="{{ url_for('feed_schedule') }}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-center">Feed Chickens</a> -->
           <a href="{{ url_for('poultry_status_farmer') }}" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 text-center">Update Stock</a>
           <a href="{{ url_for('daily_tasks') }}" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 text-center">Check Schedule</a>
         </div>

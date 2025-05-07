@@ -4,8 +4,8 @@
     <nav class="space-y-4">
       <a href="{{ url_for('admin_panel') }}" class="block text-gray-700 hover:text-blue-500">Dashboard</a>
       <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-blue-500">Profile Management</a>
-      <a href="{{ url_for('manage_tasks') }}" class="block text-gray-700 hover:text-blue-500">Manage Tasks</a>
-      <a href="{{ url_for('feed_schedule') }}" class="block text-gray-700 hover:text-green-500">Feed Schedule</a>
+      <!-- <a href="{{ url_for('manage_tasks') }}" class="block text-gray-700 hover:text-blue-500">Manage Tasks</a> -->
+      <!-- <a href="{{ url_for('feed_schedule') }}" class="block text-gray-700 hover:text-green-500">Feed Schedule</a> -->
       <a href="{{ url_for('notifications') }}" class="block text-gray-700 hover:text-blue-500">
         Notifications
         {% if unread_count > 0 %}<span class="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">{{ unread_count }}</span>{% endif %}
