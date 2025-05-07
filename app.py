@@ -1306,7 +1306,7 @@ def login():
 
         user = User.query.filter_by(email=email).first()
         if user and check_password_hash(user.password, password):
-            # Redirect based on role
+            # Determine redirect route based on user role
             redirect_url = {
                 'admin': 'admin_panel',
                 'manager': 'manager_dashboard',
@@ -1317,11 +1317,16 @@ def login():
 
             response = make_response(redirect(url_for(redirect_url)))
 
-            # Set user_id cookie (secure=False for local, True for production)
-            secure_cookie = not app.debug  # Automatically secure in production
-            response.set_cookie('user_id', str(user.id), httponly=True, secure=secure_cookie, samesite='Lax')
+            # ✅ Set secure cookie only if on https or vercel domain
+            secure_cookie = request.host.startswith('https') or 'vercel' in request.host
+            response.set_cookie(
+                'user_id',
+                str(user.id),
+                httponly=True,
+                secure=secure_cookie,
+                samesite='Lax'
+            )
             return response
-
         else:
             error = "Invalid email or password"
 
