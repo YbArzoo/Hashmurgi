@@ -1306,23 +1306,22 @@ def login():
 
         user = User.query.filter_by(email=email).first()
         if user and check_password_hash(user.password, password):
-            # Create response based on user role redirection
-            if user.role == 'admin':
-                response = make_response(redirect(url_for('admin_panel')))
-            elif user.role == 'manager':
-                response = make_response(redirect(url_for('manager_dashboard')))
-            elif user.role == 'delivery_man':
-                response = make_response(redirect(url_for('delivery_dashboard')))
-            elif user.role == 'farmer':
-                response = make_response(redirect(url_for('farmer_dashboard')))
-            elif user.role == 'customer':
-                response = make_response(redirect(url_for('home')))
-            else:
-                response = make_response(redirect(url_for('login')))
+            # Redirect based on role
+            redirect_url = {
+                'admin': 'admin_panel',
+                'manager': 'manager_dashboard',
+                'delivery_man': 'delivery_dashboard',
+                'farmer': 'farmer_dashboard',
+                'customer': 'home'
+            }.get(user.role, 'login')
 
-            # Set cookie instead of session
-            response.set_cookie('user_id', str(user.id), httponly=True, secure=True)
+            response = make_response(redirect(url_for(redirect_url)))
+
+            # Set user_id cookie (secure=False for local, True for production)
+            secure_cookie = not app.debug  # Automatically secure in production
+            response.set_cookie('user_id', str(user.id), httponly=True, secure=secure_cookie, samesite='Lax')
             return response
+
         else:
             error = "Invalid email or password"
 
@@ -3108,11 +3107,14 @@ def employee_list():
 
 @app.context_processor
 def inject_user():
+    from flask import request
     from models import User
     user = None
-    if 'user_id' in session:
-        user = User.query.get(session['user_id'])
+    user_id = request.cookies.get('user_id')
+    if user_id:
+        user = User.query.get(user_id)
     return dict(user=user)
+
 
 
 
