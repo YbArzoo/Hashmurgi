@@ -1333,10 +1333,14 @@ def login():
 
 
 
+
+
 @app.route('/logout', methods=['GET', 'POST'])
 def logout():
-    session.pop('user_id', None)  # Clear the session
-    return redirect(url_for('home'))  # Redirect to the homepage (index.html)
+    response = make_response(redirect(url_for('home')))
+    response.set_cookie('user_id', '', expires=0)  # Clear the cookie
+    return response
+
 
 
 
@@ -2110,11 +2114,11 @@ def graph_data_api():
 
 @app.route('/shop')
 def shop():
-    user_id = session.get('user_id')
-    user = db.session.get(User, user_id) if user_id else None
+    user_id = request.cookies.get('user_id')
+    user = User.query.get(user_id) if user_id else None
 
-    products = Product.query.order_by(Product.name.asc()).all()  # fetch all products
-    return render_template('shop.html', user=user, products=products)
+    products = Product.query.all()  # fetch all products
+    return render_template('shop.html', products=products, user=user)
 
 
 
