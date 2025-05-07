@@ -1,5 +1,5 @@
 import requests
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, redirect, url_for, make_response
 import os
 from dotenv import load_dotenv
 import stripe
@@ -1306,22 +1306,26 @@ def login():
 
         user = User.query.filter_by(email=email).first()
         if user and check_password_hash(user.password, password):
-            session['user_id'] = user.id
-
-            # Redirect based on role
+            # Create response based on user role redirection
             if user.role == 'admin':
-                return redirect(url_for('admin_panel'))
+                response = make_response(redirect(url_for('admin_panel')))
             elif user.role == 'manager':
-                return redirect(url_for('manager_dashboard'))
+                response = make_response(redirect(url_for('manager_dashboard')))
             elif user.role == 'delivery_man':
-                return redirect(url_for('delivery_dashboard'))
+                response = make_response(redirect(url_for('delivery_dashboard')))
             elif user.role == 'farmer':
-                return redirect(url_for('farmer_dashboard'))
+                response = make_response(redirect(url_for('farmer_dashboard')))
             elif user.role == 'customer':
-                return redirect(url_for('home'))  # send to homepage after login
+                response = make_response(redirect(url_for('home')))
+            else:
+                response = make_response(redirect(url_for('login')))
 
+            # Set cookie instead of session
+            response.set_cookie('user_id', str(user.id), httponly=True, secure=True)
+            return response
         else:
             error = "Invalid email or password"
+
     return render_template('login.html', error=error)
 
 
@@ -2284,10 +2288,12 @@ def manage_orders():
 
 @app.route('/add-to-cart/<int:product_id>', methods=['POST'])
 def add_to_cart(product_id):
-    if 'user_id' not in session:
+    user_id = request.cookies.get('user_id')
+
+    if not user_id:
         return jsonify({"error": "Please login first"}), 401
 
-    user = User.query.get(session['user_id'])
+    user = User.query.get(user_id)
     if not user or user.role != 'customer':
         return jsonify({"error": "Only customers can add to cart"}), 403
 
@@ -2307,7 +2313,11 @@ def add_to_cart(product_id):
     # Get updated cart count
     cart_count = CartItem.query.filter_by(user_id=user.id).count()
 
-    return jsonify({"success": True, "message": "Product added to cart", "cart_count": cart_count}), 200
+    return jsonify({
+        "success": True,
+        "message": "Product added to cart",
+        "cart_count": cart_count
+    }), 200
 
 
 
