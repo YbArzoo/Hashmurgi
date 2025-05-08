@@ -1,4 +1,5 @@
 import requests
+from models import User
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, redirect, url_for, make_response
 import os
 from dotenv import load_dotenv
@@ -1315,7 +1316,7 @@ def login():
                 'manager': 'manager_dashboard',
                 'delivery_man': 'delivery_dashboard',
                 'farmer': 'farmer_dashboard',
-                'customer': 'customer_dashboard'  # this was 'home' before
+                'customer': 'home'  # this was 'home' before
             }.get(user.role, 'login')
 
             return redirect(url_for(redirect_url))
@@ -2112,7 +2113,7 @@ def graph_data_api():
 
 @app.route('/shop')
 def shop():
-    user_id = request.cookies.get('user_id')
+    user_id = session.get('user_id')
     user = User.query.get(user_id) if user_id else None
 
     products = Product.query.all()  # fetch all products
@@ -3106,10 +3107,8 @@ def employee_list():
 
 @app.context_processor
 def inject_user():
-    from flask import request
-    from models import User
     user = None
-    user_id = request.cookies.get('user_id')
+    user_id = session.get('user_id')
     if user_id:
         user = User.query.get(user_id)
     return dict(user=user)
