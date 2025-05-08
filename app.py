@@ -1,6 +1,5 @@
 import requests
-from models import User
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, redirect, url_for, make_response
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, redirect, url_for
 import os
 from dotenv import load_dotenv
 import stripe
@@ -1307,25 +1306,23 @@ def login():
 
         user = User.query.filter_by(email=email).first()
         if user and check_password_hash(user.password, password):
-            # ✅ Save user ID in session
             session['user_id'] = user.id
 
-            # Determine where to redirect based on user role
-            redirect_url = {
-                'admin': 'admin_panel',
-                'manager': 'manager_dashboard',
-                'delivery_man': 'delivery_dashboard',
-                'farmer': 'farmer_dashboard',
-                'customer': 'home'  # this was 'home' before
-            }.get(user.role, 'login')
+            # Redirect based on role
+            if user.role == 'admin':
+                return redirect(url_for('admin_panel'))
+            elif user.role == 'manager':
+                return redirect(url_for('manager_dashboard'))
+            elif user.role == 'delivery_man':
+                return redirect(url_for('delivery_dashboard'))
+            elif user.role == 'farmer':
+                return redirect(url_for('farmer_dashboard'))
+            elif user.role == 'customer':
+                return redirect(url_for('home'))  # send to homepage after login
 
-            return redirect(url_for(redirect_url))
         else:
             error = "Invalid email or password"
-
     return render_template('login.html', error=error)
-
-
 
 
 
@@ -1334,12 +1331,8 @@ def login():
 
 @app.route('/logout', methods=['GET', 'POST'])
 def logout():
-    session.clear()  # ✅ Clear the Flask session
-    response = make_response(redirect(url_for('home')))
-    response.set_cookie('user_id', '', expires=0)  # ✅ Optional: Clear cookie if used
-    return response
-
-
+    session.pop('user_id', None)  # Clear the session
+    return redirect(url_for('home'))  # Redirect to the homepage (index.html)
 
 
 
@@ -2114,10 +2107,10 @@ def graph_data_api():
 @app.route('/shop')
 def shop():
     user_id = session.get('user_id')
-    user = User.query.get(user_id) if user_id else None
+    user = db.session.get(User, user_id) if user_id else None
 
-    products = Product.query.all()  # fetch all products
-    return render_template('shop.html', products=products, user=user)
+    products = Product.query.order_by(Product.name.asc()).all()  # fetch all products
+    return render_template('shop.html', user=user, products=products)
 
 
 
@@ -2291,12 +2284,10 @@ def manage_orders():
 
 @app.route('/add-to-cart/<int:product_id>', methods=['POST'])
 def add_to_cart(product_id):
-    user_id = session.get('user_id')
-
-    if not user_id:
+    if 'user_id' not in session:
         return jsonify({"error": "Please login first"}), 401
 
-    user = User.query.get(user_id)
+    user = User.query.get(session['user_id'])
     if not user or user.role != 'customer':
         return jsonify({"error": "Only customers can add to cart"}), 403
 
@@ -2316,11 +2307,7 @@ def add_to_cart(product_id):
     # Get updated cart count
     cart_count = CartItem.query.filter_by(user_id=user.id).count()
 
-    return jsonify({
-        "success": True,
-        "message": "Product added to cart",
-        "cart_count": cart_count
-    }), 200
+    return jsonify({"success": True, "message": "Product added to cart", "cart_count": cart_count}), 200
 
 
 
@@ -2328,7 +2315,6 @@ def add_to_cart(product_id):
 @app.route('/cart')
 def view_cart():
     user_id = session.get('user_id')
-
     user = db.session.get(User, user_id) if user_id else None
 
     if not user or user.role != 'customer':
@@ -2363,8 +2349,7 @@ def update_cart(product_id):
         return jsonify({"error": "Not logged in"}), 401
 
     quantity = request.json.get('quantity', 0)
-    user_id = session.get('user_id')
-
+    user_id = session['user_id']
 
     cart_item = CartItem.query.filter_by(user_id=user_id, product_id=product_id).first()
 
@@ -2381,15 +2366,12 @@ def update_cart(product_id):
 
 # Add this route to remove items from cart
 @app.route('/remove-from-cart/<int:product_id>', methods=['POST'])
+
 def remove_from_cart(product_id):
-    user_id = session.get('user_id')
-    if not user_id:
+    if 'user_id' not in session:
         return redirect(url_for('login'))
 
-    user = User.query.get(user_id)
-    if not user or user.role != 'customer':  # Optional: restrict to customers
-        return redirect(url_for('login'))
-
+    user_id = session['user_id']
     item = CartItem.query.filter_by(user_id=user_id, product_id=product_id).first()
 
     if item:
@@ -2397,9 +2379,6 @@ def remove_from_cart(product_id):
         db.session.commit()
 
     return redirect(url_for('view_cart'))
-
-
-
 @app.route('/checkout', methods=['GET', 'POST'])
 def checkout():
     user_id = session.get('user_id')
@@ -3108,17 +3087,6 @@ def employee_list():
     salary_map = {s.user_id: s.amount for s in salaries}
 
     return render_template('employee_list.html', user=user, employees=employees, salary_map=salary_map)
-
-
-@app.context_processor
-def inject_user():
-    user = None
-    user_id = session.get('user_id')
-    if user_id:
-        user = User.query.get(user_id)
-    return dict(user=user)
-
-
 
 
 
