@@ -2291,7 +2291,7 @@ def manage_orders():
 
 @app.route('/add-to-cart/<int:product_id>', methods=['POST'])
 def add_to_cart(product_id):
-    user_id = request.cookies.get('user_id')
+    user_id = session.get('user_id')
 
     if not user_id:
         return jsonify({"error": "Please login first"}), 401
@@ -2327,7 +2327,7 @@ def add_to_cart(product_id):
 # Add this route to view the cart
 @app.route('/cart')
 def view_cart():
-    user_id = request.cookies.get('user_id')
+    user_id = session.get('user_id')
 
     user = db.session.get(User, user_id) if user_id else None
 
@@ -2363,7 +2363,7 @@ def update_cart(product_id):
         return jsonify({"error": "Not logged in"}), 401
 
     quantity = request.json.get('quantity', 0)
-    user_id = request.cookies.get('user_id')
+    user_id = session.get('user_id')
 
 
     cart_item = CartItem.query.filter_by(user_id=user_id, product_id=product_id).first()
@@ -2381,12 +2381,14 @@ def update_cart(product_id):
 
 # Add this route to remove items from cart
 @app.route('/remove-from-cart/<int:product_id>', methods=['POST'])
-
 def remove_from_cart(product_id):
-    if 'user_id' not in session:
+    user_id = session.get('user_id')
+    if not user_id:
         return redirect(url_for('login'))
 
-    user_id = request.cookies.get('user_id')
+    user = User.query.get(user_id)
+    if not user or user.role != 'customer':  # Optional: restrict to customers
+        return redirect(url_for('login'))
 
     item = CartItem.query.filter_by(user_id=user_id, product_id=product_id).first()
 
@@ -2395,6 +2397,9 @@ def remove_from_cart(product_id):
         db.session.commit()
 
     return redirect(url_for('view_cart'))
+
+
+
 @app.route('/checkout', methods=['GET', 'POST'])
 def checkout():
     user_id = session.get('user_id')
