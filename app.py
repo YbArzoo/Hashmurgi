@@ -1306,27 +1306,19 @@ def login():
 
         user = User.query.filter_by(email=email).first()
         if user and check_password_hash(user.password, password):
-            # Determine redirect route based on user role
+            # ✅ Save user ID in session
+            session['user_id'] = user.id
+
+            # Determine where to redirect based on user role
             redirect_url = {
                 'admin': 'admin_panel',
                 'manager': 'manager_dashboard',
                 'delivery_man': 'delivery_dashboard',
                 'farmer': 'farmer_dashboard',
-                'customer': 'home'
+                'customer': 'customer_dashboard'  # this was 'home' before
             }.get(user.role, 'login')
 
-            response = make_response(redirect(url_for(redirect_url)))
-
-            # ✅ Set secure cookie only if on https or vercel domain
-            secure_cookie = request.host.startswith('https') or 'vercel' in request.host
-            response.set_cookie(
-                'user_id',
-                str(user.id),
-                httponly=True,
-                secure=secure_cookie,
-                samesite='Lax'
-            )
-            return response
+            return redirect(url_for(redirect_url))
         else:
             error = "Invalid email or password"
 
@@ -1341,9 +1333,11 @@ def login():
 
 @app.route('/logout', methods=['GET', 'POST'])
 def logout():
+    session.clear()  # ✅ Clear the Flask session
     response = make_response(redirect(url_for('home')))
-    response.set_cookie('user_id', '', expires=0)  # Clear the cookie
+    response.set_cookie('user_id', '', expires=0)  # ✅ Optional: Clear cookie if used
     return response
+
 
 
 
