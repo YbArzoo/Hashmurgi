@@ -9,45 +9,36 @@
 <body class="bg-gray-100 min-h-screen">
   <div class="flex h-screen">
     <!-- Sidebar -->
-    <aside class="w-64 bg-white shadow-md px-4 py-6">
-      <h1 class="text-2xl font-bold text-blue-600 mb-6">Admin Panel</h1>
-      <nav class="space-y-4">
-        <a href="#" class="block text-gray-700 hover:text-blue-500">Dashboard</a>
+    <!-- Sidebar -->
+<aside class="w-64 bg-white shadow-md px-4 py-6 flex flex-col h-screen">
+  <div>
+    <h1 class="text-2xl font-bold text-blue-600 mb-6">Admin Panel</h1>
+    <nav class="space-y-4">
+      <a href="#" class="block text-gray-700 hover:text-blue-500">Dashboard</a>
+      <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-blue-500">Profile Management</a>
+      <a href="{{ url_for('admin_income') }}" class="block text-gray-700 hover:text-blue-500">Income Overview</a>
+      <a href="{{ url_for('add_product') }}" class="block text-gray-700 hover:text-blue-500">Add Product</a>
+      <a href="{{ url_for('assign_task') }}" class="block text-gray-700 hover:text-blue-500">Assign Task</a>
+      <a href="{{ url_for('admin_reported_issues') }}" class="block text-gray-700 hover:text-blue-500">Reported Issues</a>
+      <a href="{{ url_for('manage_orders') }}" class="block text-gray-700 hover:text-blue-500">Manage Orders</a>
+      <a href="{{ url_for('graph_analysis') }}" class="block text-gray-700 hover:text-blue-500">Stock Analysis</a>
+      <a href="{{ url_for('notifications') }}" class="block text-gray-700 hover:text-blue-500">
+        Notifications
+        {% if unread_count > 0 %}
+          <span class="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">{{ unread_count }}</span>
+        {% endif %}
+      </a>
+    </nav>
+  </div>
 
-        <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-blue-500">Profile Management</a>
-        <a href="{{ url_for('admin_income') }}" class="block text-gray-700 hover:text-blue-500">Income Overview</a>
-        <a href="{{ url_for('add_product') }}" class="block text-gray-700 hover:text-blue-500">Add Product</a>
-        
-        <a href="{{ url_for('assign_task') }}" class="block text-gray-700 hover:text-blue-500">Assign Task</a>
+  <!-- Logout Button pinned at bottom -->
+  <form action="{{ url_for('logout') }}" method="POST" class="mt-auto">
+    <button type="submit" class="w-full bg-red-500 text-white py-2 rounded hover:bg-red-600">
+      Logout
+    </button>
+  </form>
+</aside>
 
-        <a href="{{ url_for('admin_reported_issues') }}" class="block text-gray-700 hover:text-blue-500">
-          Reported Issues
-
-        <a href="{{ url_for('manage_orders') }}" class="block text-gray-700 hover:text-blue-500">
-          Manage Orders
-        </a>
-      
-        <a href="{{ url_for('graph_analysis') }}" class="block text-gray-700 hover:text-blue-500">         
-          Stock Analysis
-        </a>
-        
-        
-           
-        <a href="{{ url_for('notifications') }}" class="block text-gray-700 hover:text-blue-500">
-          Notifications
-          {% if unread_count > 0 %}
-            <span class="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">{{ unread_count }}</span>
-          {% endif %}
-        </a>
-        
-
-      </nav>
-
-      <!-- Logout Button -->
-      <form action="{{ url_for('logout') }}" method="POST" class="mt-6">
-        <button type="submit" class="w-full bg-red-500 text-white py-2 rounded hover:bg-red-600">Logout</button>
-      </form>
-    </aside>
 
     <!-- Main Content -->
     <main class="flex-1 p-6 overflow-y-auto">

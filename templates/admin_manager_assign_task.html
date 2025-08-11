@@ -8,11 +8,11 @@
 </head>
 <body class="bg-gray-100 min-h-screen">
   <div class="flex h-screen">
-    {% if user.role == 'admin' %}
+    <!-- {% if user.role == 'admin' %}
       {% include 'sidebar_admin.html' %}
     {% elif user.role == 'manager' %}
       {% include 'sidebar_manager.html' %}
-    {% endif %}
+    {% endif %} -->
 
     <main class="flex-1 p-6 overflow-y-auto">
       <h2 class="text-3xl font-semibold text-gray-800 mb-6">Assign Task to Farmer</h2>
@@ -73,7 +73,18 @@
           <input type="date" name="due_date" required class="w-full border px-3 py-2 rounded" />
         </div>
 
-        <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">Assign Task</button>
+        <!-- <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">Assign Task</button> -->
+        <div class="flex justify-between">
+            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+              Assign Task
+            </button>
+          <a href="{{ url_for('manager_dashboard') if user.role == 'manager' else url_for('admin_panel') }}"
+              class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+                Back
+          </a>
+
+        </div>
+
       </form>
     </main>
   </div>

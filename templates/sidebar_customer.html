@@ -1,5 +1,6 @@
 <!-- sidebar_customer.html -->
-<aside class="w-64 bg-white shadow-md px-4 py-6">
+<aside class="w-64 bg-white shadow-md px-4 py-6 flex flex-col h-screen">
+  <div>
     <h1 class="text-2xl font-bold text-green-600 mb-6">Customer Panel</h1>
     <nav class="space-y-4">
       <a href="{{ url_for('customer_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
@@ -13,7 +14,13 @@
           <span class="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">{{ unread_count }}</span>
         {% endif %}
       </a>
-      
-      <a href="{{ url_for('logout') }}" class="block text-gray-700 hover:text-red-500">Logout</a>
     </nav>
-  </aside>
+  </div>
+
+  <!-- Logout Button pinned at bottom of sidebar -->
+  <form action="{{ url_for('logout') }}" method="POST" class="mt-auto">
+    <button type="submit" class="w-full bg-red-500 text-white py-2 rounded hover:bg-red-600">
+      Logout
+    </button>
+  </form>
+</aside>

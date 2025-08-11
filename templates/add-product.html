@@ -46,7 +46,7 @@
         <input type="file" name="image" class="w-full p-2 border rounded">
       </div>
       <div class="flex space-x-4">
-        <a href="{{ url_for('admin_panel') if user.role == 'admin' else url_for('manager_dashboard') }}" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">← Back</a>
+        <a href="{{ url_for('admin_panel') if user.role == 'admin' else url_for('manager_dashboard') }}" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Back</a>
         <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Add Product</button>
       </div>
     </form>

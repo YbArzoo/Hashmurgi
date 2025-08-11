@@ -8,7 +8,7 @@
 <body class="bg-gray-100 p-6">
 
   <div class="max-w-7xl mx-auto bg-white p-6 rounded shadow">
-    <h1 class="text-2xl font-bold mb-6">📦 Order Management</h1>
+    <h1 class="text-2xl font-bold mb-6">Order Management</h1>
 
     <table class="min-w-full bg-white border rounded shadow overflow-hidden">
       <thead class="bg-gray-200 text-gray-700">
@@ -82,7 +82,7 @@
     <div class="mb-4">
       <a href="{% if user.role == 'admin' %}{{ url_for('admin_panel') }}{% elif user.role == 'manager' %}{{ url_for('manager_dashboard') }}{% else %}{{ url_for('customer_dashboard') }}{% endif %}" 
         class="inline-block bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded">
-        ← Back
+        Back
       </a>
     </div>
 

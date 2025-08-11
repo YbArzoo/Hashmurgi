@@ -1,5 +1,6 @@
 <!-- sidebar_manager.html -->
-<aside class="w-64 bg-white shadow-md px-4 py-6">
+<aside class="w-64 bg-white shadow-md px-4 py-6 flex flex-col h-screen">
+  <div>
     <h1 class="text-2xl font-bold text-green-600 mb-6">Manager Panel</h1>
     <nav class="space-y-4">
       <a href="{{ url_for('manager_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
@@ -8,11 +9,19 @@
       <!-- <a href="{{ url_for('feed_schedule_manager') }}" class="block text-gray-700 hover:text-green-500">Feed Schedule</a> -->
       <a href="{{ url_for('notifications') }}" class="block text-gray-700 hover:text-green-500">
         Notifications
-        {% if unread_count > 0 %}<span class="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">{{ unread_count }}</span>{% endif %}
+        {% if unread_count > 0 %}
+          <span class="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">{{ unread_count }}</span>
+        {% endif %}
       </a>
       
       <!-- <a href="{{ url_for('manage_tasks') }}" class="block text-gray-700 hover:text-green-500">Manage Tasks</a> -->
-
-      <a href="{{ url_for('logout') }}" class="block text-red-600 hover:text-red-800">Logout</a>
     </nav>
-  </aside>
+  </div>
+
+  <!-- Logout Button pinned at bottom of sidebar -->
+  <form action="{{ url_for('logout') }}" method="POST" class="mt-auto">
+    <button type="submit" class="w-full bg-red-500 text-white py-2 rounded hover:bg-red-600">
+      Logout
+    </button>
+  </form>
+</aside>

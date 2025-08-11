@@ -1733,7 +1733,6 @@ def change_password():
         return redirect(url_for('login'))
 
     user = db.session.get(User, user_id)
-
     if not user:
         return redirect(url_for('login'))
 
@@ -1751,9 +1750,10 @@ def change_password():
         else:
             user.password = generate_password_hash(new_password)
             db.session.commit()
-            return render_template('password_reset_success.html')
+            return render_template('password_reset_success.html', user=user)
 
-    return render_template('change_password.html', user=user, error=error)
+    return render_template('update_password.html', user=user, error=error)
+
 
 
 @app.route('/notifications')
