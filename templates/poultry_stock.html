@@ -9,19 +9,26 @@
 <body class="bg-gray-100 min-h-screen">
   <div class="flex h-screen">
     <!-- Sidebar -->
-    <aside class="w-64 bg-white shadow-md px-4 py-6">
-      <h1 class="text-2xl font-bold text-green-600 mb-6">Manager Panel</h1>
-      <nav class="space-y-4">
-        <a href="{{ url_for('manager_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
-        <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile Management</a>
-        <a href="{{ url_for('poultry_stock') }}" class="block text-gray-700 hover:text-green-500">Poultry Stock</a>
-        <a href="{{ url_for('add_product') }}" class="block text-gray-700 hover:text-green-500">Add Product</a>
-        <a href="{{ url_for('notifications') }}" class="block text-gray-700 hover:text-green-500">Notifications</a>
-        <!-- <a href="{{ url_for('orders') }}" class="block text-gray-700 hover:text-green-500">Track Order</a> -->
-        <!-- Add this line for logout -->
-        <a href="{{ url_for('logout') }}" class="block text-red-600 hover:text-red-800">Logout</a>
-      </nav>
-    </aside>
+<aside class="w-64 bg-white shadow-md px-4 py-6 flex flex-col h-screen">
+  <h1 class="text-2xl font-bold text-green-600 mb-6">Manager Panel</h1>
+
+  <!-- Navigation -->
+  <nav class="space-y-4">
+    <a href="{{ url_for('manager_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
+    <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile Management</a>
+    <a href="{{ url_for('poultry_stock') }}" class="block text-gray-700 hover:text-green-500">Poultry Stock</a>
+    <a href="{{ url_for('add_product') }}" class="block text-gray-700 hover:text-green-500">Add Product</a>
+    <a href="{{ url_for('notifications') }}" class="block text-gray-700 hover:text-green-500">Notifications</a>
+  </nav>
+
+  <!-- Logout pinned at bottom -->
+  <form action="{{ url_for('logout') }}" method="POST" class="mt-auto">
+    <button type="submit" class="w-full bg-red-500 text-white py-2 rounded hover:bg-red-600">
+      Logout
+    </button>
+  </form>
+</aside>
+
 
     <!-- Main Content -->
     <main class="flex-1 p-6 overflow-y-auto">

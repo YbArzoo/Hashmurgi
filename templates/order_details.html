@@ -37,7 +37,7 @@
         {% elif user.role == 'admin' or user.role == 'manager' %}
           <a href="{{ url_for('admin_panel' if user.role == 'admin' else 'manager_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
           <a href="{{ url_for('manage_orders') }}" class="block text-gray-700 hover:text-green-500">Manage Orders</a>
-          <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile</a>
+          <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile Management</a>
         {% endif %}
       </nav>
       

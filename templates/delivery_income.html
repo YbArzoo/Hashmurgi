@@ -10,18 +10,27 @@
 <body class="bg-gray-100 min-h-screen">
   <div class="flex h-screen">
     <!-- Sidebar -->
-    <aside class="w-64 bg-white shadow-md px-4 py-6">
-      <h1 class="text-2xl font-bold text-green-600 mb-6">Delivery Panel</h1>
-      <nav class="space-y-4">
-        <a href="{{ url_for('delivery_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
-        <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile</a>
-        <a href="{{ url_for('assigned_orders') }}" class="block text-gray-700 hover:text-green-500">Assigned Orders</a>
-        <a href="{{ url_for('delivery_map') }}" class="block text-gray-700 hover:text-green-500">Delivery Map</a>
-        <a href="{{ url_for('report_issues') }}" class="block text-gray-700 hover:text-green-500">Report Issues</a>
-        <a href="{{ url_for('delivery_income') }}" class="block text-green-600 font-semibold">Income</a>
-        <a href="{{ url_for('logout') }}" class="block text-gray-700 hover:text-red-500">Logout</a>
-      </nav>
-    </aside>
+<aside class="w-64 bg-white shadow-md px-4 py-6 flex flex-col h-screen">
+  <h1 class="text-2xl font-bold text-green-600 mb-6">Delivery Panel</h1>
+  
+  <!-- Navigation Links -->
+  <nav class="space-y-4">
+    <a href="{{ url_for('delivery_dashboard') }}" class="block text-gray-700 hover:text-green-500">Dashboard</a>
+    <a href="{{ url_for('profile_management') }}" class="block text-gray-700 hover:text-green-500">Profile Management</a>
+    <a href="{{ url_for('assigned_orders') }}" class="block text-gray-700 hover:text-green-500">Assigned Orders</a>
+    <a href="{{ url_for('delivery_map') }}" class="block text-gray-700 hover:text-green-500">Delivery Map</a>
+    <a href="{{ url_for('report_issues') }}" class="block text-gray-700 hover:text-green-500">Report Issues</a>
+    <a href="{{ url_for('delivery_income') }}" class="block text-green-600 font-semibold">Income</a>
+  </nav>
+
+  <!-- Logout button pinned at bottom -->
+  <form action="{{ url_for('logout') }}" method="POST" class="mt-auto">
+    <button type="submit" class="w-full bg-red-500 text-white py-2 rounded hover:bg-red-600">
+      Logout
+    </button>
+  </form>
+</aside>
+
 
     <!-- Main Content -->
     <main class="flex-1 p-6 overflow-y-auto">
